@@ -27,6 +27,30 @@ function solarStatus(v: number | null) {
   return { color: 'var(--purple)', label: 'Low light' }
 }
 
+function readingAge(createdAt: Date | null) {
+  if (!createdAt) return { text: 'No readings yet', color: 'var(--text-muted)' }
+  const date = new Date(createdAt)
+  const diffMin = Math.round((Date.now() - date.getTime()) / 60000)
+
+  const relative =
+    diffMin < 1 ? 'just now'
+    : diffMin < 60 ? `${diffMin}m ago`
+    : diffMin < 1440 ? `${Math.round(diffMin / 60)}h ago`
+    : `${Math.round(diffMin / 1440)}d ago`
+
+  const formatted = date.toLocaleString('en-AU', {
+    timeZone: 'Australia/Melbourne',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  const color = diffMin > 1440 ? 'var(--red)' : diffMin > 60 ? 'var(--amber)' : 'var(--text-muted)'
+
+  return { text: `${formatted} · ${relative}`, color }
+}
+
 export default async function Dashboard() {
   const session = await auth()
   if (!session?.user) redirect('/login')
@@ -77,11 +101,13 @@ export default async function Dashboard() {
             const ws = wsStatus(r?.battery_mv ?? null)
             const esp = espStatus(r?.esp_battery_v ?? null)
             const solar = solarStatus(r?.solar_v ?? null)
+            const age = readingAge(r?.created_at ?? null)
             return (
               <div key={s.id} className="card" style={{ padding: 20 }}>
                 <Link href={`/station/${s.id}`} className="paddock-link">
-                  <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 600 }}>{s.paddock_name ?? s.id}</h3>
+                  <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 600 }}>{s.paddock_name ?? s.id}</h3>
                 </Link>
+                <p style={{ margin: '0 0 16px', fontSize: 12, color: age.color }}>{age.text}</p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
                   <Stat href={`/station/${s.id}/temp`} icon="🌡️" label="Temp" value={r?.temperature_c != null ? `${r.temperature_c.toFixed(1)}°` : '—'} />
