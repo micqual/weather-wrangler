@@ -30,6 +30,7 @@ function solarStatus(v: number | null) {
 export default async function Dashboard() {
   const session = await auth()
   if (!session?.user) redirect('/login')
+  const isAdmin = (session.user as any).email === 'mdpankhurst@gmail.com'
 
   const stations = await prisma.stations.findMany({
     where: { farmer_id: (session.user as any).id },
@@ -38,13 +39,31 @@ export default async function Dashboard() {
 
   return (
     <div style={{ minHeight: '100vh', padding: '32px 24px', maxWidth: 880, margin: '0 auto' }}>
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
-          My <span style={{ color: 'var(--orange)' }}>Paddocks</span>
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: '4px 0 0' }}>
-          {stations.length} station{stations.length !== 1 ? 's' : ''} · click any reading for its 48h history
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
+            My <span style={{ color: 'var(--orange)' }}>Paddocks</span>
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: '4px 0 0' }}>
+            {stations.length} station{stations.length !== 1 ? 's' : ''} · click any reading for its 48h history
+          </p>
+        </div>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            style={{
+              border: '1px solid var(--orange)',
+              color: 'var(--orange)',
+              borderRadius: 8,
+              padding: '6px 14px',
+              fontSize: 13,
+              fontWeight: 600,
+              textDecoration: 'none',
+            }}
+          >
+            Admin
+          </Link>
+        )}
       </div>
 
       {stations.length === 0 ? (

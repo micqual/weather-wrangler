@@ -30,18 +30,58 @@ export async function createFarm(formData: FormData) {
   revalidatePath('/admin')
 }
 
-export async function createPaddock(formData: FormData) {
+type ActionState = { error?: string; success?: string } | null
+
+export async function createPaddock(prevState: ActionState, formData: FormData): Promise<ActionState> {
   const station_id = formData.get('station_id') as string
   const farm_id = formData.get('farm_id') as string
   const paddock_name = formData.get('paddock_name') as string
-  if (!station_id || !farm_id) return
+  const confirmReassign = formData.get('confirm_reassign') === 'on'
+
+  if (!station_id || !farm_id) return { error: 'Pick a station and a farm.' }
+
+  const station = await prisma.stations.findUnique({ where: { id: station_id } })
+  if (!station) return { error: 'Station not found.' }
+
+  if (station.farm_id && station.farm_id !== farm_id && !confirmReassign) {
+    return { error: `${station_id} is already assigned to a different farm. Tick "confirm reassignment" below if you really want to move it.` }
+  }
 
   const farm = await prisma.farms.findUnique({ where: { id: farm_id } })
-  if (!farm) return
+  if (!farm) return { error: 'Farm not found.' }
 
   await prisma.stations.update({
     where: { id: station_id },
     data: { farm_id, farmer_id: farm.farmer_id, paddock_name: paddock_name || null },
   })
   revalidatePath('/admin')
+  revalidatePath('/')
+  return { success: `${station_id} linked to ${farm.name}.` }
+}
+
+export async function replaceStation(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const old_station_id = formData.get('old_station_id') as string
+  const new_station_id = formData.get('new_station_id') as string
+
+  if (!old_station_id || !new_station_id) return { error: 'Pick both the old and the replacement station.' }
+  if (old_station_id === new_station_id) return { error: 'Old and new station must be different.' }
+
+  const oldStation = await prisma.stations.findUnique({ where: { id: old_station_id } })
+  if (!oldStation) return { error: 'Old station not found.' }
+
+  const newStation = await prisma.stations.findUnique({ where: { id: new_station_id } })
+  if (!newStation) return { error: `${new_station_id} isn't registered yet — register it in step 1 first.` }
+
+  await prisma.stations.update({
+    where: { id: new_station_id },
+    data: { farm_id: oldStation.farm_id, farmer_id: oldStation.farmer_id, paddock_name: oldStation.paddock_name },
+  })
+  await prisma.stations.update({
+    where: { id: old_station_id },
+    data: { farm_id: null, farmer_id: null },
+  })
+
+  revalidatePath('/admin')
+  revalidatePath('/')
+  return { success: `${new_station_id} now stands in for ${old_station_id}'s paddock. ${old_station_id} is unassigned but its history is untouched.` }
 }

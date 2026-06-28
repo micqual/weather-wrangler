@@ -1,7 +1,9 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { createStation, createFarmer, createFarm, createPaddock } from './actions'
+import { createStation, createFarmer, createFarm } from './actions'
+import PaddockForm from './PaddockForm'
+import ReplaceStationForm from './ReplaceStationForm'
 
 const titleStyle = { margin: '0 0 4px', fontSize: 15, fontWeight: 600 }
 const hintStyle = { margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }
@@ -18,6 +20,7 @@ export default async function AdminPage() {
   ])
 
   const unassigned = stations.filter(s => !s.farm_id)
+  const assigned = stations.filter(s => s.farm_id)
 
   return (
     <div style={{ minHeight: '100vh', padding: '32px 24px', maxWidth: 900, margin: '0 auto' }}>
@@ -69,22 +72,13 @@ export default async function AdminPage() {
         <div className="card" style={{ padding: 20 }}>
           <h3 style={titleStyle}>4. Add a paddock</h3>
           <p style={hintStyle}>Links a registered station to a farm.</p>
-          <form action={createPaddock}>
-            <select className="input" name="station_id" required style={{ marginBottom: 10 }}>
-              <option value="">Select station…</option>
-              {stations.map(s => (
-                <option key={s.id} value={s.id}>{s.id}{s.farm_id ? ' (already assigned)' : ''}</option>
-              ))}
-            </select>
-            <select className="input" name="farm_id" required style={{ marginBottom: 10 }}>
-              <option value="">Select farm…</option>
-              {farms.map(f => (
-                <option key={f.id} value={f.id}>{f.name} — {f.farmers.name}</option>
-              ))}
-            </select>
-            <input className="input" name="paddock_name" placeholder="Paddock name (e.g. North Block)" style={{ marginBottom: 10 }} />
-            <button className="btn-primary" type="submit">Add paddock</button>
-          </form>
+          <PaddockForm stations={stations} farms={farms} />
+        </div>
+
+        <div className="card" style={{ padding: 20 }}>
+          <h3 style={titleStyle}>5. Replace a station</h3>
+          <p style={hintStyle}>Stolen or broken — moves the paddock to a new device. Old station's history is kept, just unassigned.</p>
+          <ReplaceStationForm assigned={assigned} unassigned={unassigned} />
         </div>
       </div>
 
