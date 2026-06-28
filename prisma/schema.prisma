@@ -61,6 +61,7 @@ model farmers {
   agronomist_name    String?
   agronomist_company String?
   agronomist_phone   String?
+  farms              farms[]
   stations           stations[]
 }
 
@@ -207,6 +208,7 @@ model stations {
   bom_humidity_pct      Float?
   bom_wind_speed_kmh    Float?
   bom_wind_direction    String?
+  farm_id               String?                 @db.Uuid
   agronomist_notes      agronomist_notes[]
   irrigation_events     irrigation_events[]
   manual_rain_events    manual_rain_events[]
@@ -215,6 +217,7 @@ model stations {
   paddock_agronomists   paddock_agronomists[]
   phosphorus_soil_tests phosphorus_soil_tests[]
   crop_types            crop_types?             @relation(fields: [crop_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  farms                 farms?                  @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   farmers               farmers?                @relation(fields: [farmer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   weather_readings      weather_readings[]
 }
@@ -236,4 +239,14 @@ model weather_readings {
   esp_battery_v Float?
   solar_v       Float?
   stations      stations? @relation(fields: [station_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model farms {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  farmer_id  String     @db.Uuid
+  name       String
+  address    String?
+  created_at DateTime?  @default(now()) @db.Timestamptz(6)
+  farmers    farmers    @relation(fields: [farmer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stations   stations[]
 }

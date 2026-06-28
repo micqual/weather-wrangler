@@ -1,26 +1,77 @@
-@import "tailwindcss";
-
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #1c1326;
+  --surface: #271b38;
+  --border: #3f2c57;
+  --text: #f7f1ea;
+  --text-muted: #a896c0;
+  --orange: #f2762a;
+  --orange-light: #ffab5e;
+  --purple: #b182ff;
+  --purple-deep: #7c4dff;
+  --amber: #facc15;
+  --red: #ef4444;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+* { box-sizing: border-box; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.paddock-link {
+  text-decoration: none;
+  color: inherit;
+}
+.paddock-link:hover {
+  color: var(--orange);
+}
+
+.stat-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s ease, background 0.15s ease;
+  border-radius: 10px;
+}
+.stat-link:hover {
+  transform: translateY(-2px);
+  background: rgba(242, 118, 42, 0.08);
+}
+
+.input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 15px;
+  width: 100%;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--orange);
+}
+
+.btn-primary {
+  background: var(--orange);
+  color: #1c1326;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  width: 100%;
+  font-size: 15px;
+}
+.btn-primary:hover {
+  background: var(--orange-light);
 }
