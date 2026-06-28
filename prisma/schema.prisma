@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model agronomist_notes {
+  id                Int      @id @default(autoincrement())
+  station_id        String
+  author_name       String
+  note              String
+  visible_to_farmer Boolean? @default(true)
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+  stations          stations @relation(fields: [station_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([station_id], map: "idx_an_station")
+}
+
+model agronomists {
+  id                  String                @id
+  email               String                @unique
+  name                String?
+  password_hash       String
+  active              Boolean?              @default(true)
+  created_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  paddock_agronomists paddock_agronomists[]
+
+  @@index([email], map: "idx_agronomist_email")
+}
+
+model crop_types {
+  id                      Int                       @id @default(autoincrement())
+  crop_name               String?
+  variety                 String?
+  base_temp_gdd           Float?
+  target_gdd_harvest      Float?
+  spray_wind_limit_kmh    Float?
+  spray_humidity_max      Float?
+  spray_humidity_min      Float?
+  spray_temp_min          Float?
+  spray_temp_max          Float?
+  frost_alert_temp        Float?
+  frost_critical_stage    String?
+  notes                   String?
+  growth_stage_thresholds growth_stage_thresholds[]
+  stations                stations[]
+}
+
+model farmers {
+  id                 String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String?
+  email              String?    @unique
+  password_hash      String?
+  created_at         DateTime?  @default(now()) @db.Timestamptz(6)
+  tier               String?    @default("base")
+  active             Boolean?   @default(true)
+  agronomist_name    String?
+  agronomist_company String?
+  agronomist_phone   String?
+  stations           stations[]
+}
+
+model growth_stage_thresholds {
+  id           Int         @id @default(autoincrement())
+  crop_group   String
+  crop_type_id Int?
+  zadoks_code  String?
+  stage_name   String
+  stage_icon   String
+  gdd_min      Float
+  gdd_max      Float
+  notes        String?
+  crop_types   crop_types? @relation(fields: [crop_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model irrigation_events {
+  id           Int      @id @default(autoincrement())
+  station_id   String
+  irrigated_at DateTime @default(now()) @db.Timestamptz(6)
+  type         String   @default("overhead")
+  amount_mm    Float?
+  duration_min Int?
+  notes        String?
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  stations     stations @relation(fields: [station_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([station_id], map: "idx_irr_station")
+  @@index([irrigated_at(sort: Desc)], map: "idx_irr_time")
+}
+
+model manual_rain_events {
+  id         Int      @id @default(autoincrement())
+  station_id String
+  event_date DateTime @db.Date
+  amount_mm  Float
+  notes      String?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  stations   stations @relation(fields: [station_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([event_date(sort: Desc)], map: "idx_mre_date")
+  @@index([station_id], map: "idx_mre_station")
+}
+
+model nitrogen_applications {
+  id                     Int      @id @default(autoincrement())
+  station_id             String
+  applied_at             DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  product                String
+  rate_kg_ha             Float
+  n_kg_ha                Float
+  method                 String?  @default("broadcast")
+  notes                  String?
+  created_at             DateTime @default(now()) @db.Timestamptz(6)
+  volatilization_loss_kg Float?   @default(0)
+  days_to_rain           Int?
+  incorporated           Boolean? @default(false)
+  stations               stations @relation(fields: [station_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([station_id], map: "idx_na_station")
+}
+
+model nitrogen_products {
+  id        Int     @id @default(autoincrement())
+  name      String
+  n_percent Float
+  notes     String?
+}
+
+model nitrogen_soil_tests {
+  id             Int      @id @default(autoincrement())
+  station_id     String
+  tested_at      DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  depth_cm       Int      @default(60)
+  no3_n_kg_ha    Float
+  nh4_n_kg_ha    Float?   @default(0)
+  notes          String?
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  chloride_mg_kg Float?
+  sulphur_mg_kg  Float?
+  stations       stations @relation(fields: [station_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([station_id], map: "idx_nst_station")
+}
+
+model paddock_agronomists {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  station_id    String
+  agronomist_id String
+  created_at    DateTime?   @default(now()) @db.Timestamptz(6)
+  agronomists   agronomists @relation(fields: [agronomist_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  stations      stations    @relation(fields: [station_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([station_id, agronomist_id])
+  @@index([agronomist_id], map: "idx_pa_agronomist")
+  @@index([station_id], map: "idx_pa_station")
+}
+
+model phosphorus_soil_tests {
+  id              Int      @id @default(autoincrement())
+  station_id      String
+  tested_at       DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  depth_cm        Int      @default(60)
+  ph_cacl2        Float?
+  p_colwell_mg_kg Float?
+  pbi             Float?
+  notes           String?
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  stations        stations @relation(fields: [station_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([tested_at(sort: Desc)], map: "idx_pst_date")
+  @@index([station_id], map: "idx_pst_station")
+}
+
+model stations {
+  id                    String                  @id
+  farmer_id             String?                 @db.Uuid
+  paddock_name          String?
+  hectares              Float?
+  crop_type_id          Int?
+  planted_date          DateTime?               @db.Date
+  growth_stage          String?
+  spray_wind_override   Float?
+  frost_temp_override   Float?
+  created_at            DateTime?               @default(now()) @db.Timestamptz(6)
+  soil_type             String?                 @default("loam")
+  target_yield_t_ha     Float?
+  farm_name             String?
+  farm_address          String?
+  latitude              Float?
+  longitude             Float?
+  elevation_m           Float?
+  installation_date     DateTime?               @db.Date
+  paddock_notes         String?
+  is_virtual            Boolean?                @default(false)
+  sim_phone_number      String?
+  sim_provider          String?
+  sim_activation_date   DateTime?               @db.Date
+  sim_imei              String?
+  bom_station_id        String?
+  bom_station_name      String?
+  bom_last_reading_time DateTime?               @db.Timestamptz(6)
+  bom_temp_c            Float?
+  bom_humidity_pct      Float?
+  bom_wind_speed_kmh    Float?
+  bom_wind_direction    String?
+  agronomist_notes      agronomist_notes[]
+  irrigation_events     irrigation_events[]
+  manual_rain_events    manual_rain_events[]
+  nitrogen_applications nitrogen_applications[]
+  nitrogen_soil_tests   nitrogen_soil_tests[]
+  paddock_agronomists   paddock_agronomists[]
+  phosphorus_soil_tests phosphorus_soil_tests[]
+  crop_types            crop_types?             @relation(fields: [crop_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  farmers               farmers?                @relation(fields: [farmer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  weather_readings      weather_readings[]
+}
+
+model weather_readings {
+  id            BigInt    @id @default(autoincrement())
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  station_id    String?
+  temperature_c Float?
+  humidity      Int?
+  wind_dir_deg  Int?
+  wind_avg_ms   Float?
+  wind_max_ms   Float?
+  rain_mm       Float?
+  uvi           Float?
+  light_lux     Float?
+  battery_mv    Int?
+  rssi          Int?
+  esp_battery_v Float?
+  solar_v       Float?
+  stations      stations? @relation(fields: [station_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
