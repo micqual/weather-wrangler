@@ -85,3 +85,19 @@ export async function replaceStation(prevState: ActionState, formData: FormData)
   revalidatePath('/')
   return { success: `${new_station_id} now stands in for ${old_station_id}'s paddock. ${old_station_id} is unassigned but its history is untouched.` }
 }
+
+export async function resetPassword(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const farmer_id = formData.get('farmer_id') as string
+  const new_password = formData.get('new_password') as string
+
+  if (!farmer_id || !new_password) return { error: 'Pick a farmer and enter a new password.' }
+  if (new_password.length < 6) return { error: 'Password should be at least 6 characters.' }
+
+  const farmer = await prisma.farmers.findUnique({ where: { id: farmer_id } })
+  if (!farmer) return { error: 'Farmer not found.' }
+
+  const password_hash = await bcrypt.hash(new_password, 12)
+  await prisma.farmers.update({ where: { id: farmer_id }, data: { password_hash } })
+
+  return { success: `Password for ${farmer.email} is now: ${new_password} — copy it now, it won't be shown again.` }
+}

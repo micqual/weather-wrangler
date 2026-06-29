@@ -2,6 +2,8 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import GddCard from '@/components/GddCard'
+import { getDailyAvgTemps } from '@/lib/gdd'
 
 function wsStatus(mv: number | null) {
   if (mv == null) return { color: 'var(--text-muted)', label: 'No data', volts: null }
@@ -58,7 +60,11 @@ export default async function Dashboard() {
 
   const stations = await prisma.stations.findMany({
     where: { farmer_id: (session.user as any).id },
-    include: { weather_readings: { orderBy: { created_at: 'desc' }, take: 1 } },
+    include: {
+      weather_readings: { orderBy: { created_at: 'desc' }, take: 1 },
+      crop_types: true,
+      zones: { include: { crop_types: true }, orderBy: { created_at: 'asc' } },
+    },
   })
 
   return (
@@ -96,12 +102,21 @@ export default async function Dashboard() {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-          {stations.map(s => {
+          {await Promise.all(stations.map(async s => {
             const r = s.weather_readings[0]
             const ws = wsStatus(r?.battery_mv ?? null)
             const esp = espStatus(r?.esp_battery_v ?? null)
             const solar = solarStatus(r?.solar_v ?? null)
             const age = readingAge(r?.created_at ?? null)
+
+            const earliestPlanting = [s.planted_date, ...s.zones.map(z => z.planted_date)]
+              .filter((d): d is Date => d != null)
+              .sort((a, b) => a.getTime() - b.getTime())[0]
+
+            const dailyAvgTemps = earliestPlanting
+              ? await getDailyAvgTemps(s.id, earliestPlanting, prisma)
+              : []
+
             return (
               <div key={s.id} className="card" style={{ padding: 20 }}>
                 <Link href={`/station/${s.id}`} className="paddock-link">
@@ -134,9 +149,33 @@ export default async function Dashboard() {
                     <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>Solar</div>
                   </div>
                 </div>
+
+                {s.crop_types && s.planted_date && (
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 14 }}>
+                    <GddCard
+                      title={`🌱 ${s.crop_types.crop_name} (${s.crop_types.variety})`}
+                      baseTemp={s.crop_types.base_temp_gdd}
+                      target={s.crop_types.target_gdd_harvest}
+                      dailyAvgTemps={dailyAvgTemps}
+                      plantedDate={s.planted_date}
+                    />
+                  </div>
+                )}
+
+                {s.zones.filter(z => z.crop_types && z.planted_date).map(z => (
+                  <div key={z.id} style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 14 }}>
+                    <GddCard
+                      title={`🌱 ${z.name} — ${z.crop_types!.crop_name} (${z.crop_types!.variety})`}
+                      baseTemp={z.crop_types!.base_temp_gdd}
+                      target={z.crop_types!.target_gdd_harvest}
+                      dailyAvgTemps={dailyAvgTemps}
+                      plantedDate={z.planted_date}
+                    />
+                  </div>
+                ))}
               </div>
             )
-          })}
+          }))}
         </div>
       )}
     </div>

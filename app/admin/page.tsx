@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { createStation, createFarmer, createFarm } from './actions'
 import PaddockForm from './PaddockForm'
 import ReplaceStationForm from './ReplaceStationForm'
+import ResetPasswordForm from './ResetPasswordForm'
 
 const titleStyle = { margin: '0 0 4px', fontSize: 15, fontWeight: 600 }
 const hintStyle = { margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }
@@ -13,14 +14,16 @@ export default async function AdminPage() {
   if (!session?.user) redirect('/login')
   if ((session.user as any).email !== 'mdpankhurst@gmail.com') redirect('/')
 
-  const [stations, farmers, farms] = await Promise.all([
+  const [stations, farmers, farms, cropTypes] = await Promise.all([
     prisma.stations.findMany({ orderBy: { created_at: 'desc' } }),
     prisma.farmers.findMany({ orderBy: { created_at: 'desc' } }),
     prisma.farms.findMany({ include: { farmers: true }, orderBy: { created_at: 'desc' } }),
+    prisma.crop_types.findMany({ orderBy: { id: 'asc' } }),
   ])
 
   const unassigned = stations.filter(s => !s.farm_id)
   const assigned = stations.filter(s => s.farm_id)
+  const cropById = new Map(cropTypes.map(c => [c.id, c]))
 
   return (
     <div style={{ minHeight: '100vh', padding: '32px 24px', maxWidth: 900, margin: '0 auto' }}>
@@ -80,6 +83,12 @@ export default async function AdminPage() {
           <p style={hintStyle}>Stolen or broken — moves the paddock to a new device. Old station's history is kept, just unassigned.</p>
           <ReplaceStationForm assigned={assigned} unassigned={unassigned} />
         </div>
+
+        <div className="card" style={{ padding: 20 }}>
+          <h3 style={titleStyle}>6. Reset a farmer's password</h3>
+          <p style={hintStyle}>Sets a new password directly — shown once after saving.</p>
+          <ResetPasswordForm farmers={farmers} />
+        </div>
       </div>
 
       <div style={{ marginTop: 32 }}>
@@ -88,9 +97,20 @@ export default async function AdminPage() {
         {farms.map(f => (
           <div key={f.id} className="card" style={{ padding: 16, marginBottom: 10 }}>
             <div style={{ fontWeight: 600 }}>{f.name} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>· {f.farmers.name}</span></div>
-            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-              {stations.filter(s => s.farm_id === f.id).map(s => s.paddock_name || s.id).join(', ') || 'No paddocks yet'}
-            </div>
+            {stations.filter(s => s.farm_id === f.id).map(s => {
+              const crop = s.crop_type_id ? cropById.get(s.crop_type_id) : null
+              return (
+                <div key={s.id} style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>
+                  {s.paddock_name || s.id}
+                  {crop ? ` · ${crop.crop_name} (${crop.variety})` : ''}
+                  {s.hectares ? ` · ${s.hectares} ha` : ''}
+                  {s.planted_date ? ` · planted ${new Date(s.planted_date).toLocaleDateString('en-AU')}` : ''}
+                </div>
+              )
+            })}
+            {stations.filter(s => s.farm_id === f.id).length === 0 && (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>No paddocks yet</div>
+            )}
           </div>
         ))}
       </div>
