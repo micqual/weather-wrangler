@@ -3,7 +3,11 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import GddCard from '@/components/GddCard'
+import SprayWindow from '@/components/SprayWindow'
+import FrostRisk from '@/components/FrostRisk'
+import HeatStress from '@/components/HeatStress'
 import { getDailyAvgTemps, getDailyRain } from '@/lib/gdd'
+import { degreesToCompass, windArrow } from '@/lib/wind'
 
 function wsStatus(mv: number | null) {
   if (mv == null) return { color: 'var(--text-muted)', label: 'No data', volts: null }
@@ -91,6 +95,10 @@ export default async function Dashboard() {
             const solar = solarStatus(r?.solar_v ?? null)
             const age = readingAge(r?.created_at ?? null)
 
+            const compass = degreesToCompass(r?.wind_dir_deg ?? null)
+            const arrow = windArrow(r?.wind_dir_deg ?? null)
+            const windKmh = r?.wind_avg_ms != null ? (r.wind_avg_ms * 3.6).toFixed(0) : null
+
             const [dailyRain, dailyAvgTemps] = await Promise.all([
               getDailyRain(s.id, prisma),
               (() => {
@@ -111,7 +119,17 @@ export default async function Dashboard() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
                   <Stat href={`/station/${s.id}/temp`} icon="🌡️" label="Temp" value={r?.temperature_c != null ? `${r.temperature_c.toFixed(1)}°` : '—'} />
                   <Stat href={`/station/${s.id}/humidity`} icon="💧" label="Humidity" value={r?.humidity != null ? `${r.humidity}%` : '—'} />
-                  <Stat href={`/station/${s.id}/wind`} icon="💨" label="Wind" value={r?.wind_avg_ms != null ? `${(r.wind_avg_ms * 3.6).toFixed(0)} km/h` : '—'} />
+                  <div>
+                    <Link href={`/station/${s.id}/wind`} className="stat-link" style={{ border: '1px solid var(--orange)', padding: '10px 6px', textAlign: 'center', display: 'block', borderRadius: 10 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                        💨 {windKmh ?? '—'} km/h
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--orange)', marginTop: 2 }}>
+                        {arrow} {compass}
+                      </div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Wind</div>
+                    </Link>
+                  </div>
                   <Stat href={`/station/${s.id}/rain`} icon="🌧️" label="Today" value={dailyRain != null ? `${dailyRain.toFixed(1)} mm` : '—'} />
                 </div>
 
@@ -134,6 +152,30 @@ export default async function Dashboard() {
                   </div>
                 </div>
 
+                <SprayWindow
+                  tempC={r?.temperature_c ?? null}
+                  humidity={r?.humidity ?? null}
+                  windAvgMs={r?.wind_avg_ms ?? null}
+                  windMaxMs={r?.wind_max_ms ?? null}
+                  createdAt={r?.created_at ?? null}
+                />
+
+                <FrostRisk
+                  tempC={r?.temperature_c ?? null}
+                  humidity={r?.humidity ?? null}
+                  alertTemp={s.crop_types?.frost_alert_temp ?? null}
+                  createdAt={r?.created_at ?? null}
+                  cropName={s.crop_types ? `${s.crop_types.crop_name} (${s.crop_types.variety})` : null}
+                />
+
+                {s.crop_types && (
+                  <HeatStress
+                    tempC={r?.temperature_c ?? null}
+                    growthStage={s.growth_stage ?? null}
+                    label={`${s.crop_types.crop_name} (${s.crop_types.variety})`}
+                  />
+                )}
+
                 {s.crop_types && s.planted_date && (
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 14 }}>
                     <GddCard
@@ -146,15 +188,24 @@ export default async function Dashboard() {
                   </div>
                 )}
 
-                {s.zones.filter(z => z.crop_types && z.planted_date).map(z => (
-                  <div key={z.id} style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 14 }}>
-                    <GddCard
-                      title={`🌱 ${z.name} — ${z.crop_types!.crop_name} (${z.crop_types!.variety})`}
-                      baseTemp={z.crop_types!.base_temp_gdd}
-                      target={z.crop_types!.target_gdd_harvest}
-                      dailyAvgTemps={dailyAvgTemps}
-                      plantedDate={z.planted_date}
+                {s.zones.filter(z => z.crop_types).map(z => (
+                  <div key={z.id}>
+                    <HeatStress
+                      tempC={r?.temperature_c ?? null}
+                      growthStage={z.growth_stage ?? null}
+                      label={`${z.name} — ${z.crop_types!.crop_name} (${z.crop_types!.variety})`}
                     />
+                    {z.planted_date && (
+                      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 14 }}>
+                        <GddCard
+                          title={`🌱 ${z.name} — ${z.crop_types!.crop_name} (${z.crop_types!.variety})`}
+                          baseTemp={z.crop_types!.base_temp_gdd}
+                          target={z.crop_types!.target_gdd_harvest}
+                          dailyAvgTemps={dailyAvgTemps}
+                          plantedDate={z.planted_date}
+                        />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

@@ -266,6 +266,7 @@ model zones {
   soil_type             String?                 @default("loam")
   hectares              Decimal?                @db.Decimal
   created_at            DateTime?               @default(now()) @db.Timestamptz(6)
+  growth_stage          String?
   nitrogen_soil_tests   nitrogen_soil_tests[]
   phosphorus_soil_tests phosphorus_soil_tests[]
   crop_types            crop_types?             @relation(fields: [crop_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
