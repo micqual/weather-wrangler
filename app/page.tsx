@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import GddCard from '@/components/GddCard'
-import { getDailyAvgTemps } from '@/lib/gdd'
+import { getDailyAvgTemps, getDailyRain } from '@/lib/gdd'
 
 function wsStatus(mv: number | null) {
   if (mv == null) return { color: 'var(--text-muted)', label: 'No data', volts: null }
@@ -33,23 +33,16 @@ function readingAge(createdAt: Date | null) {
   if (!createdAt) return { text: 'No readings yet', color: 'var(--text-muted)' }
   const date = new Date(createdAt)
   const diffMin = Math.round((Date.now() - date.getTime()) / 60000)
-
   const relative =
     diffMin < 1 ? 'just now'
     : diffMin < 60 ? `${diffMin}m ago`
     : diffMin < 1440 ? `${Math.round(diffMin / 60)}h ago`
     : `${Math.round(diffMin / 1440)}d ago`
-
   const formatted = date.toLocaleString('en-AU', {
     timeZone: 'Australia/Melbourne',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
+    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   })
-
   const color = diffMin > 1440 ? 'var(--red)' : diffMin > 60 ? 'var(--amber)' : 'var(--text-muted)'
-
   return { text: `${formatted} · ${relative}`, color }
 }
 
@@ -79,18 +72,7 @@ export default async function Dashboard() {
           </p>
         </div>
         {isAdmin && (
-          <Link
-            href="/admin"
-            style={{
-              border: '1px solid var(--orange)',
-              color: 'var(--orange)',
-              borderRadius: 8,
-              padding: '6px 14px',
-              fontSize: 13,
-              fontWeight: 600,
-              textDecoration: 'none',
-            }}
-          >
+          <Link href="/admin" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
             Admin
           </Link>
         )}
@@ -109,13 +91,15 @@ export default async function Dashboard() {
             const solar = solarStatus(r?.solar_v ?? null)
             const age = readingAge(r?.created_at ?? null)
 
-            const earliestPlanting = [s.planted_date, ...s.zones.map(z => z.planted_date)]
-              .filter((d): d is Date => d != null)
-              .sort((a, b) => a.getTime() - b.getTime())[0]
-
-            const dailyAvgTemps = earliestPlanting
-              ? await getDailyAvgTemps(s.id, earliestPlanting, prisma)
-              : []
+            const [dailyRain, dailyAvgTemps] = await Promise.all([
+              getDailyRain(s.id, prisma),
+              (() => {
+                const earliestPlanting = [s.planted_date, ...s.zones.map(z => z.planted_date)]
+                  .filter((d): d is Date => d != null)
+                  .sort((a, b) => a.getTime() - b.getTime())[0]
+                return earliestPlanting ? getDailyAvgTemps(s.id, earliestPlanting, prisma) : Promise.resolve([])
+              })(),
+            ])
 
             return (
               <div key={s.id} className="card" style={{ padding: 20 }}>
@@ -128,7 +112,7 @@ export default async function Dashboard() {
                   <Stat href={`/station/${s.id}/temp`} icon="🌡️" label="Temp" value={r?.temperature_c != null ? `${r.temperature_c.toFixed(1)}°` : '—'} />
                   <Stat href={`/station/${s.id}/humidity`} icon="💧" label="Humidity" value={r?.humidity != null ? `${r.humidity}%` : '—'} />
                   <Stat href={`/station/${s.id}/wind`} icon="💨" label="Wind" value={r?.wind_avg_ms != null ? `${(r.wind_avg_ms * 3.6).toFixed(0)} km/h` : '—'} />
-                  <Stat href={`/station/${s.id}/rain`} icon="🌧️" label="Rain" value={r?.rain_mm != null ? `${r.rain_mm.toFixed(1)} mm` : '—'} />
+                  <Stat href={`/station/${s.id}/rain`} icon="🌧️" label="Today" value={dailyRain != null ? `${dailyRain.toFixed(1)} mm` : '—'} />
                 </div>
 
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
