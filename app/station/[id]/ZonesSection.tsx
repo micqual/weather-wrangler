@@ -8,6 +8,8 @@ type Zone = {
   planted_date: Date | null
   soil_type: string | null
   hectares: any
+  target_yield_t_ha: any
+  actual_yield_t_ha: any
 }
 type CropType = { id: number; crop_name: string | null; variety: string | null }
 
@@ -25,21 +27,30 @@ export default function ZonesSection({ stationId, zones, cropTypes }: { stationI
       {zones.map(z => {
         const crop = z.crop_type_id ? cropById.get(z.crop_type_id) : null
         return (
-          <div key={z.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 10, marginTop: 10 }}>
-            <div style={{ fontSize: 13 }}>
-              <strong>{z.name}</strong>
-              <span style={{ color: 'var(--text-muted)' }}>
-                {crop ? ` · ${crop.crop_name} (${crop.variety})` : ''}
-                {z.soil_type ? ` · ${z.soil_type}` : ''}
-                {z.hectares ? ` · ${z.hectares} ha` : ''}
-                {z.planted_date ? ` · planted ${new Date(z.planted_date).toLocaleDateString('en-AU')}` : ''}
-              </span>
+          <div key={z.id} style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ fontSize: 13 }}>
+                <strong>{z.name}</strong>
+                <span style={{ color: 'var(--text-muted)' }}>
+                  {crop ? ` · ${crop.crop_name} (${crop.variety})` : ''}
+                  {z.soil_type ? ` · ${z.soil_type}` : ''}
+                  {z.hectares ? ` · ${z.hectares} ha` : ''}
+                  {z.planted_date ? ` · planted ${new Date(z.planted_date).toLocaleDateString('en-AU')}` : ''}
+                </span>
+                {(z.target_yield_t_ha != null || z.actual_yield_t_ha != null) && (
+                  <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-muted)' }}>
+                    {z.target_yield_t_ha != null && <span>Target: <span style={{ color: 'var(--orange)' }}>{z.target_yield_t_ha} t/ha</span></span>}
+                    {z.target_yield_t_ha != null && z.actual_yield_t_ha != null && <span> · </span>}
+                    {z.actual_yield_t_ha != null && <span>Actual: <span style={{ color: 'var(--purple)' }}>{z.actual_yield_t_ha} t/ha</span></span>}
+                  </div>
+                )}
+              </div>
+              <form action={deleteZone}>
+                <input type="hidden" name="zone_id" value={z.id} />
+                <input type="hidden" name="station_id" value={stationId} />
+                <button type="submit" style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: 12, cursor: 'pointer' }}>Remove</button>
+              </form>
             </div>
-            <form action={deleteZone}>
-              <input type="hidden" name="zone_id" value={z.id} />
-              <input type="hidden" name="station_id" value={stationId} />
-              <button type="submit" style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: 12, cursor: 'pointer' }}>Remove</button>
-            </form>
           </div>
         )
       })}

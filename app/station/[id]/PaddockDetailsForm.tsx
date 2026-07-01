@@ -12,6 +12,8 @@ export default function PaddockDetailsForm({
   currentPlantedDate,
   currentHectares,
   currentSoilType,
+  currentTargetYield,
+  currentActualYield,
 }: {
   stationId: string
   cropTypes: CropType[]
@@ -19,6 +21,8 @@ export default function PaddockDetailsForm({
   currentPlantedDate: string | null
   currentHectares: number | null
   currentSoilType: string | null
+  currentTargetYield: number | null
+  currentActualYield: number | null
 }) {
   const [state, formAction, pending] = useActionState(updatePaddockDetails, null)
 
@@ -29,7 +33,7 @@ export default function PaddockDetailsForm({
         Paddock details
       </h3>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 12 }}>
         <select className="input" name="crop_type_id" defaultValue={currentCropTypeId ?? ''}>
           <option value="">No crop type</option>
           {cropTypes.map(c => (
@@ -37,8 +41,10 @@ export default function PaddockDetailsForm({
           ))}
         </select>
         <input className="input" name="planted_date" type="date" defaultValue={currentPlantedDate ?? ''} />
-        <input className="input" name="soil_type" placeholder="Soil type (e.g. loam)" defaultValue={currentSoilType ?? ''} />
+        <input className="input" name="soil_type" placeholder="Soil type" defaultValue={currentSoilType ?? ''} />
         <input className="input" name="hectares" type="number" step="0.1" placeholder="Size (ha)" defaultValue={currentHectares ?? ''} />
+        <input className="input" name="target_yield_t_ha" type="number" step="0.01" placeholder="Target yield (t/ha)" defaultValue={currentTargetYield ?? ''} />
+        <input className="input" name="actual_yield_t_ha" type="number" step="0.01" placeholder="Actual yield (t/ha)" defaultValue={currentActualYield ?? ''} />
       </div>
 
       {state?.error && <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 10 }}>{state.error}</p>}

@@ -214,6 +214,7 @@ model stations {
   bom_wind_speed_kmh    Float?
   bom_wind_direction    String?
   farm_id               String?                 @db.Uuid
+  actual_yield_t_ha     Decimal?                @db.Decimal
   agronomist_notes      agronomist_notes[]
   irrigation_events     irrigation_events[]
   manual_rain_events    manual_rain_events[]
@@ -267,6 +268,8 @@ model zones {
   hectares              Decimal?                @db.Decimal
   created_at            DateTime?               @default(now()) @db.Timestamptz(6)
   growth_stage          String?
+  target_yield_t_ha     Decimal?                @db.Decimal
+  actual_yield_t_ha     Decimal?                @db.Decimal
   nitrogen_soil_tests   nitrogen_soil_tests[]
   phosphorus_soil_tests phosphorus_soil_tests[]
   crop_types            crop_types?             @relation(fields: [crop_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)

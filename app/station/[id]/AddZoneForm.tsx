@@ -9,7 +9,7 @@ export default function AddZoneForm({ stationId, cropTypes }: { stationId: strin
   const [state, formAction, pending] = useActionState(createZone, null)
 
   return (
-    <form action={formAction} style={{ marginTop: 12 }}>
+    <form action={formAction} style={{ marginTop: 10 }}>
       <input type="hidden" name="station_id" value={stationId} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 10 }}>
         <input className="input" name="name" placeholder="Zone name (e.g. Zone 1)" />
@@ -20,8 +20,10 @@ export default function AddZoneForm({ stationId, cropTypes }: { stationId: strin
           ))}
         </select>
         <input className="input" name="planted_date" type="date" />
-        <input className="input" name="soil_type" placeholder="Soil type (e.g. loam)" />
+        <input className="input" name="soil_type" placeholder="Soil type" />
         <input className="input" name="hectares" type="number" step="0.1" placeholder="Size (ha)" />
+        <input className="input" name="target_yield_t_ha" type="number" step="0.01" placeholder="Target yield (t/ha)" />
+        <input className="input" name="actual_yield_t_ha" type="number" step="0.01" placeholder="Actual yield (t/ha)" />
       </div>
       {state?.error && <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 10 }}>{state.error}</p>}
       {state?.success && <p style={{ color: 'var(--orange)', fontSize: 13, marginBottom: 10 }}>{state.success}</p>}

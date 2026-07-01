@@ -24,9 +24,21 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
   return (
     <div style={{ minHeight: '100vh', padding: '32px 24px', maxWidth: 880, margin: '0 auto' }}>
       <Link href="/" style={{ color: 'var(--text-muted)', fontSize: 14, textDecoration: 'none' }}>← Back to paddocks</Link>
-      <h1 style={{ fontSize: 22, fontWeight: 700, margin: '12px 0 24px' }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, margin: '12px 0 8px' }}>
         {station.paddock_name ?? station.id}
       </h1>
+
+      {(station.target_yield_t_ha != null || (station as any).actual_yield_t_ha != null) && (
+        <div style={{ fontSize: 13, marginBottom: 20 }}>
+          {station.target_yield_t_ha != null && (
+            <span>Target yield: <span style={{ color: 'var(--orange)', fontWeight: 600 }}>{station.target_yield_t_ha} t/ha</span></span>
+          )}
+          {station.target_yield_t_ha != null && (station as any).actual_yield_t_ha != null && <span style={{ color: 'var(--text-muted)' }}> · </span>}
+          {(station as any).actual_yield_t_ha != null && (
+            <span>Actual yield: <span style={{ color: 'var(--purple)', fontWeight: 600 }}>{(station as any).actual_yield_t_ha} t/ha</span></span>
+          )}
+        </div>
+      )}
 
       <PaddockDetailsForm
         stationId={station.id}
@@ -35,6 +47,8 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
         currentPlantedDate={station.planted_date ? new Date(station.planted_date).toISOString().slice(0, 10) : null}
         currentHectares={station.hectares}
         currentSoilType={station.soil_type}
+        currentTargetYield={station.target_yield_t_ha}
+        currentActualYield={(station as any).actual_yield_t_ha ?? null}
       />
 
       <ZonesSection stationId={station.id} zones={zones} cropTypes={cropTypes} />

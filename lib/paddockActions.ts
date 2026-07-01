@@ -15,6 +15,8 @@ export async function updatePaddockDetails(prevState: ActionState, formData: For
   const planted_date = formData.get('planted_date') as string
   const hectares = formData.get('hectares') as string
   const soil_type = formData.get('soil_type') as string
+  const target_yield = formData.get('target_yield_t_ha') as string
+  const actual_yield = formData.get('actual_yield_t_ha') as string
 
   if (!station_id) return { error: 'Missing paddock.' }
 
@@ -30,6 +32,8 @@ export async function updatePaddockDetails(prevState: ActionState, formData: For
       planted_date: planted_date ? new Date(planted_date) : null,
       hectares: hectares ? parseFloat(hectares) : null,
       soil_type: soil_type || null,
+      target_yield_t_ha: target_yield ? parseFloat(target_yield) : null,
+      actual_yield_t_ha: actual_yield ? parseFloat(actual_yield) : null,
     },
   })
 
