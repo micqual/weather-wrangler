@@ -91,3 +91,48 @@ export async function getDailyRain(stationId: string, prisma: any): Promise<numb
   if (!firstToday || !latest) return null
   return Math.max(0, (latest.rain_mm as number) - (firstToday.rain_mm as number))
 }
+
+export async function getPostApplicationWeather(
+  stationId: string,
+  appliedAt: Date,
+  prisma: any
+): Promise<{ avgTempC: number | null; avgHumidity: number | null; daysToRain: number | null; totalRainMm: number | null }> {
+  const dayAfter = new Date(appliedAt.getTime() + 14 * 86400000)
+
+  const readings = await prisma.weather_readings.findMany({
+    where: {
+      station_id: stationId,
+      created_at: { gte: appliedAt, lte: dayAfter },
+    },
+    select: { temperature_c: true, humidity: true, rain_mm: true, created_at: true },
+    orderBy: { created_at: 'asc' },
+  })
+
+  if (readings.length === 0) return { avgTempC: null, avgHumidity: null, daysToRain: null, totalRainMm: null }
+
+  const temps = readings.filter((r: any) => r.temperature_c != null).map((r: any) => r.temperature_c as number)
+  const humids = readings.filter((r: any) => r.humidity != null).map((r: any) => r.humidity as number)
+  const avgTempC = temps.length > 0 ? temps.reduce((a: number, b: number) => a + b, 0) / temps.length : null
+  const avgHumidity = humids.length > 0 ? humids.reduce((a: number, b: number) => a + b, 0) / humids.length : null
+
+  // Find first rain event (>1mm) and total rain
+  let daysToRain: number | null = null
+  let totalRainMm = 0
+  const firstReading = readings[0]
+  const baseRain = firstReading?.rain_mm ?? 0
+
+  for (const r of readings) {
+    if (r.rain_mm != null && r.rain_mm > baseRain + 1) {
+      if (daysToRain === null) {
+        daysToRain = Math.round((new Date(r.created_at).getTime() - appliedAt.getTime()) / 86400000)
+      }
+    }
+  }
+
+  const lastReading = readings[readings.length - 1]
+  totalRainMm = lastReading?.rain_mm != null && firstReading?.rain_mm != null
+    ? Math.max(0, (lastReading.rain_mm as number) - (firstReading.rain_mm as number))
+    : 0
+
+  return { avgTempC, avgHumidity, daysToRain, totalRainMm }
+}

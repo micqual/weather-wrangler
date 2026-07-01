@@ -5,6 +5,8 @@ import Link from 'next/link'
 import PaddockDetailsForm from './PaddockDetailsForm'
 import ZonesSection from './ZonesSection'
 import SoilTestsSection from './SoilTestsSection'
+import NitrogenApplicationsSection from './NitrogenApplicationsSection'
+import { getPostApplicationWeather } from '@/lib/gdd'
 
 export default async function StationDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -14,12 +16,22 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
   const station = await prisma.stations.findFirst({ where: { id, farmer_id: (session.user as any).id } })
   if (!station) notFound()
 
-  const [cropTypes, zones, nitrogenTests, phosphorusTests] = await Promise.all([
+  const [cropTypes, zones, nitrogenTests, phosphorusTests, nitrogenApplications, nitrogenProducts] = await Promise.all([
     prisma.crop_types.findMany({ orderBy: { id: 'asc' } }),
     prisma.zones.findMany({ where: { station_id: id }, orderBy: { created_at: 'asc' } }),
     prisma.nitrogen_soil_tests.findMany({ where: { station_id: id }, orderBy: { tested_at: 'desc' } }),
     prisma.phosphorus_soil_tests.findMany({ where: { station_id: id }, orderBy: { tested_at: 'desc' } }),
+    prisma.nitrogen_applications.findMany({ where: { station_id: id }, orderBy: { applied_at: 'desc' } }),
+    prisma.nitrogen_products.findMany({ orderBy: { id: 'asc' } }),
   ])
+
+  // Enrich each application with post-application weather data for loss calculations
+  const applicationsWithWeather = await Promise.all(
+    nitrogenApplications.map(async a => {
+      const weather = await getPostApplicationWeather(id, new Date(a.applied_at), prisma)
+      return { ...a, ...weather }
+    })
+  )
 
   return (
     <div style={{ minHeight: '100vh', padding: '32px 24px', maxWidth: 880, margin: '0 auto' }}>
@@ -52,6 +64,14 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
       />
 
       <ZonesSection stationId={station.id} zones={zones} cropTypes={cropTypes} />
+
+      <NitrogenApplicationsSection
+        stationId={station.id}
+        zones={zones.map(z => ({ id: z.id, name: z.name, soil_type: z.soil_type ?? null }))}
+        products={nitrogenProducts}
+        applications={applicationsWithWeather}
+        paddockSoilType={station.soil_type ?? null}
+      />
 
       <SoilTestsSection
         stationId={station.id}
