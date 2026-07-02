@@ -176,3 +176,59 @@ export async function getDailyRainWithRate(stationId: string, prisma: any): Prom
 
   return { rainMm, avgRateMMH }
 }
+
+export async function getRainStats(stationId: string, prisma: any): Promise<{
+  rainLast24h: number
+  rainLast72h: number
+  daysSinceLastRain: number | null
+}> {
+  const now = new Date()
+  const h24ago = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const h72ago = new Date(now.getTime() - 72 * 60 * 60 * 1000)
+
+  const [readings24, readings72] = await Promise.all([
+    prisma.weather_readings.findMany({
+      where: { station_id: stationId, created_at: { gte: h24ago }, rain_mm: { not: null } },
+      select: { rain_mm: true },
+      orderBy: { created_at: 'asc' },
+    }),
+    prisma.weather_readings.findMany({
+      where: { station_id: stationId, created_at: { gte: h72ago }, rain_mm: { not: null } },
+      select: { rain_mm: true },
+      orderBy: { created_at: 'asc' },
+    }),
+  ])
+
+  const calcRain = (readings: any[]) => {
+    if (readings.length < 2) return 0
+    const first = readings[0].rain_mm as number
+    const last = readings[readings.length - 1].rain_mm as number
+    return Math.max(0, last - first)
+  }
+
+  const rainLast24h = calcRain(readings24)
+  const rainLast72h = calcRain(readings72)
+
+  // Find days since last rain event (>0.5mm)
+  const recentReadings = await prisma.weather_readings.findMany({
+    where: { station_id: stationId, rain_mm: { not: null } },
+    select: { rain_mm: true, created_at: true },
+    orderBy: { created_at: 'desc' },
+    take: 200,
+  })
+
+  let daysSinceLastRain: number | null = null
+  let prevRain: number | null = null
+  for (const r of recentReadings) {
+    if (prevRain !== null) {
+      const inc = prevRain - (r.rain_mm as number)
+      if (inc > 0.5) {
+        daysSinceLastRain = Math.round((now.getTime() - new Date(r.created_at).getTime()) / 86400000)
+        break
+      }
+    }
+    prevRain = r.rain_mm as number
+  }
+
+  return { rainLast24h, rainLast72h, daysSinceLastRain }
+}

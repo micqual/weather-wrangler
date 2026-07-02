@@ -23,7 +23,12 @@ export default function FrostRisk({
 
   const result = getFrostRisk(tempC, humidity, alertTemp, hour)
 
-  if (result.risk === 'none' && result.label === 'No data') return null
+  const icon = result.risk === 'frost' ? '🔴'
+    : result.risk === 'warning' ? '🟡'
+    : result.risk === 'watch' ? '🟡'
+    : '🟢'
+
+  const label = result.risk === 'none' ? 'No frost risk' : result.label
 
   return (
     <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 14 }}>
@@ -31,11 +36,11 @@ export default function FrostRisk({
         <span style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
           Frost risk{cropName ? ` · ${cropName}` : ''}
         </span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: result.color }}>
-          {result.label}
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+          {icon} {label}
         </span>
       </div>
-      {result.risk !== 'none' && (
+      {result.risk !== 'none' && result.reason && (
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
           {result.reason}
           {result.dewPoint != null && ` · Dew point ${result.dewPoint.toFixed(1)}°C`}
