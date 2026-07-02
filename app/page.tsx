@@ -75,11 +75,16 @@ export default async function Dashboard() {
             {stations.length} station{stations.length !== 1 ? 's' : ''} · click any reading for its 48h history
           </p>
         </div>
-        {isAdmin && (
-          <Link href="/admin" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
-            Admin
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Link href="/nitrogen" style={{ border: '1px solid var(--purple)', color: 'var(--purple)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+            Nitrogen
           </Link>
-        )}
+          {isAdmin && (
+            <Link href="/admin" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+              Admin
+            </Link>
+          )}
+        </div>
       </div>
 
       {stations.length === 0 ? (
@@ -94,7 +99,6 @@ export default async function Dashboard() {
             const esp = espStatus(r?.esp_battery_v ?? null)
             const solar = solarStatus(r?.solar_v ?? null)
             const age = readingAge(r?.created_at ?? null)
-
             const compass = degreesToCompass(r?.wind_dir_deg ?? null)
             const arrow = windArrow(r?.wind_dir_deg ?? null)
             const windKmh = r?.wind_avg_ms != null ? (r.wind_avg_ms * 3.6).toFixed(0) : null

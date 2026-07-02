@@ -46,6 +46,7 @@ model crop_types {
   frost_alert_temp        Float?
   frost_critical_stage    String?
   notes                   String?
+  n_req_kg_per_tonne      Decimal?                  @default(40) @db.Decimal
   growth_stage_thresholds growth_stage_thresholds[]
   stations                stations[]
   zones                   zones[]
