@@ -5,6 +5,8 @@ import { createStation, createFarmer, createFarm } from './actions'
 import PaddockForm from './PaddockForm'
 import ReplaceStationForm from './ReplaceStationForm'
 import ResetPasswordForm from './ResetPasswordForm'
+import EditStationForm from './EditStationForm'
+import Link from 'next/link'
 
 const titleStyle = { margin: '0 0 4px', fontSize: 15, fontWeight: 600 }
 const hintStyle = { margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }
@@ -24,15 +26,25 @@ export default async function AdminPage() {
   const unassigned = stations.filter(s => !s.farm_id)
   const assigned = stations.filter(s => s.farm_id)
   const cropById = new Map(cropTypes.map(c => [c.id, c]))
+  const stationsWithGps = stations.filter(s => s.latitude && s.longitude).length
 
   return (
     <div style={{ minHeight: '100vh', padding: '32px 24px', maxWidth: 900, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>
-        <span style={{ color: 'var(--orange)' }}>Admin</span>
-      </h1>
-      <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: '0 0 28px' }}>
-        Register stations, create farmer logins, set up farms and paddocks
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>
+            <span style={{ color: 'var(--orange)' }}>Admin</span>
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: 0 }}>
+            Register stations, create farmer logins, set up farms and paddocks
+          </p>
+        </div>
+        {stationsWithGps > 0 && (
+          <Link href="/admin/map" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+            🗺️ Station map
+          </Link>
+        )}
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
         <div className="card" style={{ padding: 20 }}>
@@ -42,8 +54,8 @@ export default async function AdminPage() {
             <input className="input" name="id" placeholder="Station ID (e.g. node_3)" required style={{ marginBottom: 10 }} />
             <input className="input" name="ws90_serial" placeholder="WS90 serial number (optional)" style={{ marginBottom: 10 }} />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-              <input className="input" name="latitude" type="number" step="0.000001" placeholder="Latitude (e.g. -35.123)" />
-              <input className="input" name="longitude" type="number" step="0.000001" placeholder="Longitude (e.g. 143.456)" />
+              <input className="input" name="latitude" type="number" step="0.000001" placeholder="Latitude" />
+              <input className="input" name="longitude" type="number" step="0.000001" placeholder="Longitude" />
             </div>
             <button className="btn-primary" type="submit">Register station</button>
           </form>
@@ -53,7 +65,13 @@ export default async function AdminPage() {
         </div>
 
         <div className="card" style={{ padding: 20 }}>
-          <h3 style={titleStyle}>2. Create a farmer login</h3>
+          <h3 style={titleStyle}>2. Edit a station</h3>
+          <p style={hintStyle}>Update paddock name, serial number, GPS, or elevation.</p>
+          <EditStationForm stations={stations} />
+        </div>
+
+        <div className="card" style={{ padding: 20 }}>
+          <h3 style={titleStyle}>3. Create a farmer login</h3>
           <form action={createFarmer}>
             <input className="input" name="name" placeholder="Farmer name" required style={{ marginBottom: 10 }} />
             <input className="input" name="email" type="email" placeholder="Email" required style={{ marginBottom: 10 }} />
@@ -63,7 +81,7 @@ export default async function AdminPage() {
         </div>
 
         <div className="card" style={{ padding: 20 }}>
-          <h3 style={titleStyle}>3. Create a farm</h3>
+          <h3 style={titleStyle}>4. Create a farm</h3>
           <form action={createFarm}>
             <select className="input" name="farmer_id" required style={{ marginBottom: 10 }}>
               <option value="">Select farmer…</option>
@@ -78,19 +96,19 @@ export default async function AdminPage() {
         </div>
 
         <div className="card" style={{ padding: 20 }}>
-          <h3 style={titleStyle}>4. Add a paddock</h3>
+          <h3 style={titleStyle}>5. Add a paddock</h3>
           <p style={hintStyle}>Links a registered station to a farm.</p>
           <PaddockForm stations={stations} farms={farms} />
         </div>
 
         <div className="card" style={{ padding: 20 }}>
-          <h3 style={titleStyle}>5. Replace a station</h3>
+          <h3 style={titleStyle}>6. Replace a station</h3>
           <p style={hintStyle}>Stolen or broken — moves the paddock to a new device.</p>
           <ReplaceStationForm assigned={assigned} unassigned={unassigned} />
         </div>
 
         <div className="card" style={{ padding: 20 }}>
-          <h3 style={titleStyle}>6. Reset a farmer's password</h3>
+          <h3 style={titleStyle}>7. Reset a farmer's password</h3>
           <p style={hintStyle}>Sets a new password directly — shown once after saving.</p>
           <ResetPasswordForm farmers={farmers} />
         </div>

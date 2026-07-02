@@ -111,3 +111,30 @@ export async function resetPassword(prevState: ActionState, formData: FormData):
 
   return { success: `Password for ${farmer.email} is now: ${new_password} — copy it now, it won't be shown again.` }
 }
+
+export async function updateStation(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const id = formData.get('id') as string
+  const paddock_name = formData.get('paddock_name') as string
+  const ws90_serial = (formData.get('ws90_serial') as string)?.trim() || null
+  const latitude = formData.get('latitude') as string
+  const longitude = formData.get('longitude') as string
+  const elevation = formData.get('elevation_m') as string
+
+  if (!id) return { error: 'Missing station ID.' }
+
+  await prisma.stations.update({
+    where: { id },
+    data: {
+      paddock_name: paddock_name || null,
+      ws90_serial,
+      latitude: latitude ? parseFloat(latitude) : null,
+      longitude: longitude ? parseFloat(longitude) : null,
+      elevation_m: elevation ? parseFloat(elevation) : null,
+    },
+  })
+
+  revalidatePath('/admin')
+  revalidatePath('/admin/map')
+  revalidatePath('/')
+  return { success: `${id} updated.` }
+}
