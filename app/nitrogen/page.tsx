@@ -4,11 +4,18 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import NitrogenGauge from '@/components/NitrogenGauge'
 import NitrogenChart from '@/components/NitrogenChart'
+import YieldPotentialChart from '@/components/YieldPotentialChart'
 import { calcNBudget, buildNChart } from '@/lib/nBudget'
+import { calcYieldPotential, buildYieldChart } from '@/lib/yieldPotential'
 import { getPostApplicationWeather } from '@/lib/gdd'
 import { estimateNLosses } from '@/lib/volatilization'
 
 export const dynamic = 'force-dynamic'
+
+function toNum(val: any): number | null {
+  if (val == null) return null
+  return parseFloat(String(val))
+}
 
 export default async function NitrogenPage() {
   const session = await auth()
@@ -29,18 +36,22 @@ export default async function NitrogenPage() {
     const appsWithWeather = await Promise.all(
       applications.map(async a => {
         const weather = await getPostApplicationWeather(s.id, new Date(a.applied_at), prisma)
-        const soilType = s.soil_type ?? null
         const losses = estimateNLosses(
           a.n_kg_ha, a.incorporated ?? false,
           weather.avgTempC, weather.avgHumidity,
           weather.daysToRain, weather.totalRainMm,
-          soilType, a.product
+          s.soil_type ?? null, a.product
         )
         return { ...a, ...weather, losses }
       })
     )
 
-    const nReq = (s.crop_types as any)?.n_req_kg_per_tonne ?? 40
+    // Convert all Decimal fields to plain numbers upfront
+    const nReq = toNum((s.crop_types as any)?.n_req_kg_per_tonne) ?? 40
+    const wue = toNum((s.crop_types as any)?.wue_kg_per_mm) ?? 17
+    const storedSoilWater = toNum((s as any).stored_soil_water_mm)
+    const organicCarbon = toNum((s as any).organic_carbon_pct)
+    const actualYield = toNum((s as any).actual_yield_t_ha)
 
     const paddockBudget = calcNBudget(
       soilTests.filter(t => !t.zone_id),
@@ -50,33 +61,65 @@ export default async function NitrogenPage() {
       nReq
     )
 
-    const daysToHarvest = s.planted_date && paddockBudget.targetN
-      ? Math.max(1, Math.round(((s as any).estimated_harvest ? new Date((s as any).estimated_harvest).getTime() : Date.now() + 120 * 86400000) - Date.now()) / 86400000)
-      : 180
+    const yieldResult = calcYieldPotential(
+      storedSoilWater,
+      0,
+      organicCarbon,
+      paddockBudget.totalAvailable,
+      nReq,
+      wue,
+      s.target_yield_t_ha ?? null,
+      actualYield
+    )
+
+    let yieldChartPoints: any[] = []
+    if (s.planted_date) {
+      const plantedDate = new Date(s.planted_date)
+      const rainReadings = await prisma.weather_readings.findMany({
+        where: { station_id: s.id, created_at: { gte: plantedDate }, rain_mm: { not: null } },
+        select: { created_at: true, rain_mm: true },
+        orderBy: { created_at: 'asc' },
+      })
+      const byDay = new Map<string, number>()
+      let prevRain = toNum(rainReadings[0]?.rain_mm) ?? 0
+      for (const r of rainReadings) {
+        if (!r.created_at) continue
+        const dateKey = new Date(r.created_at).toLocaleDateString('en-CA', { timeZone: 'Australia/Melbourne' })
+        const inc = Math.max(0, (toNum(r.rain_mm) ?? 0) - prevRain)
+        byDay.set(dateKey, (byDay.get(dateKey) ?? 0) + inc)
+        prevRain = toNum(r.rain_mm) ?? prevRain
+      }
+      yieldChartPoints = buildYieldChart(
+        Array.from(byDay.entries()).map(([date, rainMm]) => ({ date, rainMm })),
+        storedSoilWater, organicCarbon,
+        paddockBudget.totalAvailable, nReq, wue
+      )
+    }
 
     const chartPoints = buildNChart(
       appsWithWeather.filter(a => !(a as any).zone_id),
       s.planted_date ? new Date(s.planted_date) : null,
       s.target_yield_t_ha ?? null,
-      nReq,
-      daysToHarvest
+      nReq, 180
     )
 
-    const zoneBudgets = zones.map(z => {
-      const zSoilTests = soilTests.filter(t => t.zone_id === z.id)
-      const zApps = appsWithWeather.filter(a => (a as any).zone_id === z.id)
-      return {
-        zone: z,
-        budget: calcNBudget(
-          zSoilTests, zApps,
-          z.soil_type ?? s.soil_type ?? null,
-          (z as any).target_yield_t_ha ?? null,
-          (z.crop_types as any)?.n_req_kg_per_tonne ?? 40
-        ),
-      }
-    })
+    const zoneBudgets = zones.map(z => ({
+      zone: z,
+      budget: calcNBudget(
+        soilTests.filter(t => t.zone_id === z.id),
+        appsWithWeather.filter(a => (a as any).zone_id === z.id),
+        z.soil_type ?? s.soil_type ?? null,
+        toNum((z as any).target_yield_t_ha),
+        toNum((z.crop_types as any)?.n_req_kg_per_tonne) ?? 40
+      ),
+    }))
 
-    return { station: s, paddockBudget, zoneBudgets, chartPoints }
+    return {
+      station: s,
+      paddockBudget, zoneBudgets, chartPoints,
+      yieldResult, yieldChartPoints,
+      actualYield, nReq, wue
+    }
   }))
 
   return (
@@ -93,7 +136,7 @@ export default async function NitrogenPage() {
         <Link href="/" style={{ color: 'var(--text-muted)', fontSize: 14, textDecoration: 'none' }}>← My Paddocks</Link>
       </div>
 
-      {stationData.map(({ station, paddockBudget, zoneBudgets, chartPoints }) => (
+      {stationData.map(({ station, paddockBudget, zoneBudgets, chartPoints, yieldResult, yieldChartPoints, actualYield }) => (
         <div key={station.id} className="card" style={{ padding: 20, marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>
@@ -107,7 +150,7 @@ export default async function NitrogenPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 20 }}>
             <NitrogenGauge data={{
               label: station.paddock_name ?? station.id,
               soilN: paddockBudget.soilN,
@@ -135,6 +178,55 @@ export default async function NitrogenPage() {
             </div>
           )}
 
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginBottom: 20 }}>
+            <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 12px' }}>
+              Yield Potential
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12, marginBottom: 16 }}>
+              {yieldResult.waterLimitedTHa != null && (
+                <div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#60a5fa' }}>{yieldResult.waterLimitedTHa.toFixed(1)} t/ha</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Water limited</div>
+                </div>
+              )}
+              {yieldResult.nLimitedTHa != null && (
+                <div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--orange)' }}>{yieldResult.nLimitedTHa.toFixed(1)} t/ha</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>N limited</div>
+                </div>
+              )}
+              {yieldResult.targetTHa != null && (
+                <div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--purple)' }}>{yieldResult.targetTHa.toFixed(1)} t/ha</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Target</div>
+                </div>
+              )}
+              {actualYield != null && (
+                <div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#4ade80' }}>{actualYield.toFixed(1)} t/ha</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Actual</div>
+                </div>
+              )}
+              {yieldResult.waterLimitedTHa == null && (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  Set stored soil water on the <Link href={`/station/${station.id}`} style={{ color: 'var(--orange)' }}>paddock page</Link> to see water-limited yield.
+                </div>
+              )}
+            </div>
+            {yieldChartPoints.length > 1 && (
+              <YieldPotentialChart
+                points={yieldChartPoints}
+                actualTHa={actualYield}
+                targetTHa={station.target_yield_t_ha ?? null}
+              />
+            )}
+            {yieldResult.notes.length > 0 && (
+              <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                {yieldResult.notes.join(' · ')}
+              </div>
+            )}
+          </div>
+
           {chartPoints.length > 1 && (
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
               <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 12px' }}>
@@ -143,18 +235,12 @@ export default async function NitrogenPage() {
               <NitrogenChart points={chartPoints} />
             </div>
           )}
-
-          {chartPoints.length <= 1 && (
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, fontSize: 13, color: 'var(--text-muted)' }}>
-              Set a planted date and yield target on this paddock to see the N loss timeline.
-            </div>
-          )}
         </div>
       ))}
 
       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
         N budget = latest soil test N + retained applied N (after estimated volatilization and leaching losses).
-        Crop usage estimated from yield target ÷ days to harvest. Losses are estimates — not a substitute for professional advice.
+        Yield potential uses Sadras & Angus (2006) / French-Schultz framework. Losses are estimates — not a substitute for professional advice.
       </p>
     </div>
   )

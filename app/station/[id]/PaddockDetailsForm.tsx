@@ -14,6 +14,8 @@ export default function PaddockDetailsForm({
   currentSoilType,
   currentTargetYield,
   currentActualYield,
+  currentStoredSoilWater,
+  currentOrganicCarbon,
 }: {
   stationId: string
   cropTypes: CropType[]
@@ -23,6 +25,8 @@ export default function PaddockDetailsForm({
   currentSoilType: string | null
   currentTargetYield: number | null
   currentActualYield: number | null
+  currentStoredSoilWater: number | null
+  currentOrganicCarbon: number | null
 }) {
   const [state, formAction, pending] = useActionState(updatePaddockDetails, null)
 
@@ -45,6 +49,8 @@ export default function PaddockDetailsForm({
         <input className="input" name="hectares" type="number" step="0.1" placeholder="Size (ha)" defaultValue={currentHectares ?? ''} />
         <input className="input" name="target_yield_t_ha" type="number" step="0.01" placeholder="Target yield (t/ha)" defaultValue={currentTargetYield ?? ''} />
         <input className="input" name="actual_yield_t_ha" type="number" step="0.01" placeholder="Actual yield (t/ha)" defaultValue={currentActualYield ?? ''} />
+        <input className="input" name="stored_soil_water_mm" type="number" step="1" placeholder="Stored soil water (mm)" defaultValue={currentStoredSoilWater ?? ''} />
+        <input className="input" name="organic_carbon_pct" type="number" step="0.01" placeholder="Organic carbon (%)" defaultValue={currentOrganicCarbon ?? ''} />
       </div>
 
       {state?.error && <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 10 }}>{state.error}</p>}

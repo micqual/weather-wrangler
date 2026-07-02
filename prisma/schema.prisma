@@ -47,6 +47,7 @@ model crop_types {
   frost_critical_stage    String?
   notes                   String?
   n_req_kg_per_tonne      Decimal?                  @default(40) @db.Decimal
+  wue_kg_per_mm           Decimal?                  @default(17) @db.Decimal
   growth_stage_thresholds growth_stage_thresholds[]
   stations                stations[]
   zones                   zones[]
@@ -218,6 +219,8 @@ model stations {
   bom_wind_direction    String?
   farm_id               String?                 @db.Uuid
   actual_yield_t_ha     Decimal?                @db.Decimal
+  stored_soil_water_mm  Decimal?                @db.Decimal
+  organic_carbon_pct    Decimal?                @db.Decimal
   agronomist_notes      agronomist_notes[]
   irrigation_events     irrigation_events[]
   manual_rain_events    manual_rain_events[]
@@ -273,6 +276,8 @@ model zones {
   growth_stage          String?
   target_yield_t_ha     Decimal?                @db.Decimal
   actual_yield_t_ha     Decimal?                @db.Decimal
+  stored_soil_water_mm  Decimal?                @db.Decimal
+  organic_carbon_pct    Decimal?                @db.Decimal
   nitrogen_applications nitrogen_applications[]
   nitrogen_soil_tests   nitrogen_soil_tests[]
   phosphorus_soil_tests phosphorus_soil_tests[]

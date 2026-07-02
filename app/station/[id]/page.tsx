@@ -7,6 +7,7 @@ import ZonesSection from './ZonesSection'
 import SoilTestsSection from './SoilTestsSection'
 import NitrogenApplicationsSection from './NitrogenApplicationsSection'
 import { getPostApplicationWeather } from '@/lib/gdd'
+import { estimateNLosses } from '@/lib/volatilization'
 
 export default async function StationDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -25,11 +26,16 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
     prisma.nitrogen_products.findMany({ orderBy: { id: 'asc' } }),
   ])
 
-  // Enrich each application with post-application weather data for loss calculations
-  const applicationsWithWeather = await Promise.all(
+  const appsWithWeather = await Promise.all(
     nitrogenApplications.map(async a => {
       const weather = await getPostApplicationWeather(id, new Date(a.applied_at), prisma)
-      return { ...a, ...weather }
+      const losses = estimateNLosses(
+        a.n_kg_ha, a.incorporated ?? false,
+        weather.avgTempC, weather.avgHumidity,
+        weather.daysToRain, weather.totalRainMm,
+        station.soil_type ?? null, a.product
+      )
+      return { ...a, ...weather, losses }
     })
   )
 
@@ -61,6 +67,8 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
         currentSoilType={station.soil_type}
         currentTargetYield={station.target_yield_t_ha}
         currentActualYield={(station as any).actual_yield_t_ha ?? null}
+        currentStoredSoilWater={(station as any).stored_soil_water_mm ? parseFloat(String((station as any).stored_soil_water_mm)) : null}
+        currentOrganicCarbon={(station as any).organic_carbon_pct ? parseFloat(String((station as any).organic_carbon_pct)) : null}
       />
 
       <ZonesSection stationId={station.id} zones={zones} cropTypes={cropTypes} />
@@ -69,7 +77,7 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
         stationId={station.id}
         zones={zones.map(z => ({ id: z.id, name: z.name, soil_type: z.soil_type ?? null }))}
         products={nitrogenProducts}
-        applications={applicationsWithWeather}
+        applications={appsWithWeather}
         paddockSoilType={station.soil_type ?? null}
       />
 
@@ -82,6 +90,7 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
 
       <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
         For weather history, click Temp / Humidity / Wind / Rain on the <Link href="/" style={{ color: 'var(--orange)' }}>main dashboard</Link>.
+        For N budget and yield potential, visit the <Link href="/nitrogen" style={{ color: 'var(--orange)' }}>Nitrogen page</Link>.
       </p>
     </div>
   )
