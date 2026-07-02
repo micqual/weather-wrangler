@@ -6,8 +6,8 @@ import GddCard from '@/components/GddCard'
 import SprayWindow from '@/components/SprayWindow'
 import FrostRisk from '@/components/FrostRisk'
 import HeatStress from '@/components/HeatStress'
-import { getDailyAvgTemps, getDailyRain } from '@/lib/gdd'
-import { degreesToCompass, windArrow } from '@/lib/wind'
+import { getDailyAvgTemps, getDailyRainWithRate } from '@/lib/gdd'
+import { degreesToCompass, windArrow, rainVariance } from '@/lib/wind'
 
 function wsStatus(mv: number | null) {
   if (mv == null) return { color: 'var(--text-muted)', label: 'No data', volts: null }
@@ -103,8 +103,8 @@ export default async function Dashboard() {
             const arrow = windArrow(r?.wind_dir_deg ?? null)
             const windKmh = r?.wind_avg_ms != null ? (r.wind_avg_ms * 3.6).toFixed(0) : null
 
-            const [dailyRain, dailyAvgTemps] = await Promise.all([
-              getDailyRain(s.id, prisma),
+            const [{ rainMm: dailyRain, avgRateMMH }, dailyAvgTemps] = await Promise.all([
+              getDailyRainWithRate(s.id, prisma),
               (() => {
                 const earliestPlanting = [s.planted_date, ...s.zones.map(z => z.planted_date)]
                   .filter((d): d is Date => d != null)
@@ -112,6 +112,8 @@ export default async function Dashboard() {
                 return earliestPlanting ? getDailyAvgTemps(s.id, earliestPlanting, prisma) : Promise.resolve([])
               })(),
             ])
+
+            const variance = dailyRain != null ? rainVariance(dailyRain, avgRateMMH) : null
 
             return (
               <div key={s.id} className="card" style={{ padding: 20 }}>
@@ -134,7 +136,13 @@ export default async function Dashboard() {
                       <div style={{ color: 'var(--text-muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Wind</div>
                     </Link>
                   </div>
-                  <Stat href={`/station/${s.id}/rain`} icon="🌧️" label="Today" value={dailyRain != null ? `${dailyRain.toFixed(1)} mm` : '—'} />
+                  <Link href={`/station/${s.id}/rain`} className="stat-link" style={{ border: '1px solid var(--orange)', padding: '10px 6px', textAlign: 'center', borderRadius: 10 }}>
+                    <div style={{ fontSize: 17, fontWeight: 700, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>🌧️ {dailyRain != null ? `${dailyRain.toFixed(1)} mm` : '—'}</div>
+                    {variance && variance.label && (
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{variance.label}</div>
+                    )}
+                    <div style={{ color: 'var(--text-muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Today</div>
+                  </Link>
                 </div>
 
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>

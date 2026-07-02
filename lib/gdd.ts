@@ -136,3 +136,43 @@ export async function getPostApplicationWeather(
 
   return { avgTempC, avgHumidity, daysToRain, totalRainMm }
 }
+
+export async function getDailyRainWithRate(stationId: string, prisma: any): Promise<{ rainMm: number | null; avgRateMMH: number | null }> {
+  const midnightUTC = getMelbourneMidnightUTC()
+
+  const [firstToday, latest, todayReadings] = await Promise.all([
+    prisma.weather_readings.findFirst({
+      where: { station_id: stationId, created_at: { gte: midnightUTC }, rain_mm: { not: null } },
+      orderBy: { created_at: 'asc' },
+      select: { rain_mm: true },
+    }),
+    prisma.weather_readings.findFirst({
+      where: { station_id: stationId, rain_mm: { not: null } },
+      orderBy: { created_at: 'desc' },
+      select: { rain_mm: true },
+    }),
+    prisma.weather_readings.findMany({
+      where: { station_id: stationId, created_at: { gte: midnightUTC }, rain_mm: { not: null } },
+      orderBy: { created_at: 'asc' },
+      select: { rain_mm: true },
+    }),
+  ])
+
+  if (!firstToday || !latest) return { rainMm: null, avgRateMMH: null }
+
+  const rainMm = Math.max(0, (latest.rain_mm as number) - (firstToday.rain_mm as number))
+
+  // Calculate average rain rate from increments — 15 min intervals × 4 = mm/h
+  let totalRate = 0
+  let rateCount = 0
+  for (let i = 1; i < todayReadings.length; i++) {
+    const inc = Math.max(0, (todayReadings[i].rain_mm as number) - (todayReadings[i - 1].rain_mm as number))
+    if (inc > 0) {
+      totalRate += inc * 4 // 15 min to hourly rate
+      rateCount++
+    }
+  }
+  const avgRateMMH = rateCount > 0 ? totalRate / rateCount : null
+
+  return { rainMm, avgRateMMH }
+}

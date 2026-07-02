@@ -12,3 +12,11 @@ export function windArrow(deg: number | null): string {
   const index = Math.round(deg / 22.5) % 16
   return arrows[index]
 }
+
+export function rainVariance(rainMm: number, avgRateMMH: number | null): { pct: number; label: string } {
+  if (rainMm === 0) return { pct: 0, label: '' }
+  if (avgRateMMH == null) return { pct: 20, label: '±20%' }
+  if (avgRateMMH < 5) return { pct: 20, label: '±20%' }
+  if (avgRateMMH <= 50) return { pct: 10, label: '±10%' }
+  return { pct: 20, label: '±20%' }
+}
