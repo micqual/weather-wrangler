@@ -37,9 +37,14 @@ export default async function AdminPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
         <div className="card" style={{ padding: 20 }}>
           <h3 style={titleStyle}>1. Register a station</h3>
-          <p style={hintStyle}>Just the device ID — do this anytime, even before it's sold.</p>
+          <p style={hintStyle}>Device ID, WS90 serial number, and GPS coordinates.</p>
           <form action={createStation}>
-            <input className="input" name="id" placeholder="Station ID (e.g. WS90-014)" required style={{ marginBottom: 10 }} />
+            <input className="input" name="id" placeholder="Station ID (e.g. node_3)" required style={{ marginBottom: 10 }} />
+            <input className="input" name="ws90_serial" placeholder="WS90 serial number (optional)" style={{ marginBottom: 10 }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <input className="input" name="latitude" type="number" step="0.000001" placeholder="Latitude (e.g. -35.123)" />
+              <input className="input" name="longitude" type="number" step="0.000001" placeholder="Longitude (e.g. 143.456)" />
+            </div>
             <button className="btn-primary" type="submit">Register station</button>
           </form>
           <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text-muted)' }}>
@@ -80,7 +85,7 @@ export default async function AdminPage() {
 
         <div className="card" style={{ padding: 20 }}>
           <h3 style={titleStyle}>5. Replace a station</h3>
-          <p style={hintStyle}>Stolen or broken — moves the paddock to a new device. Old station's history is kept, just unassigned.</p>
+          <p style={hintStyle}>Stolen or broken — moves the paddock to a new device.</p>
           <ReplaceStationForm assigned={assigned} unassigned={unassigned} />
         </div>
 
@@ -102,9 +107,11 @@ export default async function AdminPage() {
               return (
                 <div key={s.id} style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>
                   {s.paddock_name || s.id}
+                  {(s as any).ws90_serial ? ` · S/N: ${(s as any).ws90_serial}` : ''}
                   {crop ? ` · ${crop.crop_name} (${crop.variety})` : ''}
                   {s.hectares ? ` · ${s.hectares} ha` : ''}
                   {s.planted_date ? ` · planted ${new Date(s.planted_date).toLocaleDateString('en-AU')}` : ''}
+                  {s.latitude && s.longitude ? ` · ${s.latitude.toFixed(4)}, ${s.longitude.toFixed(4)}` : ''}
                 </div>
               )
             })}

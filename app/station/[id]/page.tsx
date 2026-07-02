@@ -69,6 +69,9 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
         currentActualYield={(station as any).actual_yield_t_ha ?? null}
         currentStoredSoilWater={(station as any).stored_soil_water_mm ? parseFloat(String((station as any).stored_soil_water_mm)) : null}
         currentOrganicCarbon={(station as any).organic_carbon_pct ? parseFloat(String((station as any).organic_carbon_pct)) : null}
+        ws90Serial={(station as any).ws90_serial ?? null}
+        latitude={station.latitude ?? null}
+        longitude={station.longitude ?? null}
       />
 
       <ZonesSection stationId={station.id} zones={zones} cropTypes={cropTypes} />

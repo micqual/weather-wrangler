@@ -16,6 +16,9 @@ export default function PaddockDetailsForm({
   currentActualYield,
   currentStoredSoilWater,
   currentOrganicCarbon,
+  ws90Serial,
+  latitude,
+  longitude,
 }: {
   stationId: string
   cropTypes: CropType[]
@@ -27,6 +30,9 @@ export default function PaddockDetailsForm({
   currentActualYield: number | null
   currentStoredSoilWater: number | null
   currentOrganicCarbon: number | null
+  ws90Serial: string | null
+  latitude: number | null
+  longitude: number | null
 }) {
   const [state, formAction, pending] = useActionState(updatePaddockDetails, null)
 
@@ -36,6 +42,15 @@ export default function PaddockDetailsForm({
       <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
         Paddock details
       </h3>
+
+      {/* Station info — read only */}
+      {(ws90Serial || latitude) && (
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+          {ws90Serial && <span>S/N: <span style={{ color: 'var(--text)' }}>{ws90Serial}</span></span>}
+          {ws90Serial && latitude && <span> · </span>}
+          {latitude && longitude && <span>GPS: <span style={{ color: 'var(--text)' }}>{latitude.toFixed(5)}, {longitude.toFixed(5)}</span></span>}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 12 }}>
         <select className="input" name="crop_type_id" defaultValue={currentCropTypeId ?? ''}>

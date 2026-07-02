@@ -221,6 +221,7 @@ model stations {
   actual_yield_t_ha     Decimal?                @db.Decimal
   stored_soil_water_mm  Decimal?                @db.Decimal
   organic_carbon_pct    Decimal?                @db.Decimal
+  ws90_serial           String?
   agronomist_notes      agronomist_notes[]
   irrigation_events     irrigation_events[]
   manual_rain_events    manual_rain_events[]

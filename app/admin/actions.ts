@@ -6,8 +6,18 @@ import { revalidatePath } from 'next/cache'
 
 export async function createStation(formData: FormData) {
   const id = (formData.get('id') as string)?.trim()
+  const ws90_serial = (formData.get('ws90_serial') as string)?.trim() || null
+  const latitude = formData.get('latitude') as string
+  const longitude = formData.get('longitude') as string
   if (!id) return
-  await prisma.stations.create({ data: { id } })
+  await prisma.stations.create({
+    data: {
+      id,
+      ws90_serial,
+      latitude: latitude ? parseFloat(latitude) : null,
+      longitude: longitude ? parseFloat(longitude) : null,
+    }
+  })
   revalidatePath('/admin')
 }
 
