@@ -48,24 +48,28 @@ model crop_types {
   notes                   String?
   n_req_kg_per_tonne      Decimal?                  @default(40) @db.Decimal
   wue_kg_per_mm           Decimal?                  @default(17) @db.Decimal
+  mitscherlich_c          Decimal?                  @default(0.03) @db.Decimal
+  grain_price_per_tonne   Decimal?                  @default(280) @db.Decimal
   growth_stage_thresholds growth_stage_thresholds[]
   stations                stations[]
   zones                   zones[]
 }
 
 model farmers {
-  id                 String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name               String?
-  email              String?    @unique
-  password_hash      String?
-  created_at         DateTime?  @default(now()) @db.Timestamptz(6)
-  tier               String?    @default("base")
-  active             Boolean?   @default(true)
-  agronomist_name    String?
-  agronomist_company String?
-  agronomist_phone   String?
-  farms              farms[]
-  stations           stations[]
+  id                    String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String?
+  email                 String?    @unique
+  password_hash         String?
+  created_at            DateTime?  @default(now()) @db.Timestamptz(6)
+  tier                  String?    @default("base")
+  active                Boolean?   @default(true)
+  agronomist_name       String?
+  agronomist_company    String?
+  agronomist_phone      String?
+  grain_price_per_tonne Decimal?   @default(280) @db.Decimal
+  n_cost_per_kg_n       Decimal?   @default(1.20) @db.Decimal
+  farms                 farms[]
+  stations              stations[]
 }
 
 model growth_stage_thresholds {
@@ -284,4 +288,10 @@ model zones {
   phosphorus_soil_tests phosphorus_soil_tests[]
   crop_types            crop_types?             @relation(fields: [crop_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   stations              stations                @relation(fields: [station_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model settings {
+  id              Int       @id @default(1)
+  n_cost_per_kg_n Decimal?  @default(1.20) @db.Decimal
+  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
 }

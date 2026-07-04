@@ -138,3 +138,28 @@ export async function updateStation(prevState: ActionState, formData: FormData):
   revalidatePath('/')
   return { success: `${id} updated.` }
 }
+
+export async function updateSettings(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const n_cost = formData.get('n_cost_per_kg_n') as string
+  if (!n_cost) return { error: 'N cost is required.' }
+  await prisma.settings.update({
+    where: { id: 1 },
+    data: { n_cost_per_kg_n: parseFloat(n_cost), updated_at: new Date() },
+  })
+  revalidatePath('/admin')
+  revalidatePath('/agronomy')
+  return { success: 'Settings updated.' }
+}
+
+export async function updateCropPrice(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const id = parseInt(formData.get('id') as string)
+  const price = formData.get('grain_price_per_tonne') as string
+  if (!id || !price) return { error: 'Select a crop and enter a price.' }
+  await prisma.crop_types.update({
+    where: { id },
+    data: { grain_price_per_tonne: parseFloat(price) },
+  })
+  revalidatePath('/admin')
+  revalidatePath('/agronomy')
+  return { success: 'Crop price updated.' }
+}

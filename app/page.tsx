@@ -82,7 +82,10 @@ export default async function Dashboard() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <Link href="/nitrogen" style={{ border: '1px solid var(--purple)', color: 'var(--purple)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+          <Link href="/agronomy" style={{ border: "1px solid var(--orange)", color: "var(--orange)", borderRadius: 8, padding: "6px 14px", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+            Agronomy
+          </Link>
+          <Link href="/nitrogen" style={{ border: "1px solid var(--purple)", color: "var(--purple)", borderRadius: 8, padding: "6px 14px", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
             Nitrogen
           </Link>
           {isAdmin && (

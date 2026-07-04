@@ -6,6 +6,7 @@ import PaddockForm from './PaddockForm'
 import ReplaceStationForm from './ReplaceStationForm'
 import ResetPasswordForm from './ResetPasswordForm'
 import EditStationForm from './EditStationForm'
+import SettingsForm from './SettingsForm'
 import Link from 'next/link'
 
 const titleStyle = { margin: '0 0 4px', fontSize: 15, fontWeight: 600 }
@@ -16,11 +17,12 @@ export default async function AdminPage() {
   if (!session?.user) redirect('/login')
   if ((session.user as any).email !== 'mdpankhurst@gmail.com') redirect('/')
 
-  const [stations, farmers, farms, cropTypes] = await Promise.all([
+  const [stations, farmers, farms, cropTypes, settings] = await Promise.all([
     prisma.stations.findMany({ orderBy: { created_at: 'desc' } }),
     prisma.farmers.findMany({ orderBy: { created_at: 'desc' } }),
     prisma.farms.findMany({ include: { farmers: true }, orderBy: { created_at: 'desc' } }),
     prisma.crop_types.findMany({ orderBy: { id: 'asc' } }),
+    prisma.settings.findUnique({ where: { id: 1 } }),
   ])
 
   const unassigned = stations.filter(s => !s.farm_id)
@@ -105,6 +107,15 @@ export default async function AdminPage() {
           <h3 style={titleStyle}>6. Replace a station</h3>
           <p style={hintStyle}>Stolen or broken — moves the paddock to a new device.</p>
           <ReplaceStationForm assigned={assigned} unassigned={unassigned} />
+        </div>
+
+        <div className="card" style={{ padding: 20 }}>
+          <h3 style={titleStyle}>8. Market prices</h3>
+          <p style={hintStyle}>Update grain prices and fertiliser cost for economic N optimum calculations.</p>
+          <SettingsForm
+            nCost={settings ? parseFloat(String(settings.n_cost_per_kg_n)) : 1.20}
+            cropTypes={cropTypes}
+          />
         </div>
 
         <div className="card" style={{ padding: 20 }}>
