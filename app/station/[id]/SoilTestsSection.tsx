@@ -38,7 +38,7 @@ export default function SoilTestsSection({
   phosphorusTests: PTest[]
 }) {
   return (
-    <div className="card" style={{ padding: 20, marginBottom: 24 }}>
+    <div>
       <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
         Soil Tests
       </h3>

@@ -63,7 +63,7 @@ export default function NitrogenApplicationsSection({
   const totalLeach = appsWithLosses.reduce((sum, a) => sum + a.losses.leachingKgNHa, 0)
 
   return (
-    <div className="card" style={{ padding: 20, marginBottom: 24 }}>
+    <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
           Nitrogen Applications

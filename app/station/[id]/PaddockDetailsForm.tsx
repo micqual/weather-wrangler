@@ -37,13 +37,9 @@ export default function PaddockDetailsForm({
   const [state, formAction, pending] = useActionState(updatePaddockDetails, null)
 
   return (
-    <form action={formAction} className="card" style={{ padding: 20, marginBottom: 24 }}>
+    <form action={formAction}>
       <input type="hidden" name="station_id" value={stationId} />
-      <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-        Paddock details
-      </h3>
 
-      {/* Station info — read only */}
       {(ws90Serial || latitude) && (
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
           {ws90Serial && <span>S/N: <span style={{ color: 'var(--text)' }}>{ws90Serial}</span></span>}

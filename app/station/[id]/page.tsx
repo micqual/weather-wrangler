@@ -6,6 +6,7 @@ import PaddockDetailsForm from './PaddockDetailsForm'
 import ZonesSection from './ZonesSection'
 import SoilTestsSection from './SoilTestsSection'
 import NitrogenApplicationsSection from './NitrogenApplicationsSection'
+import CollapsibleSection from './CollapsibleSection'
 import { getPostApplicationWeather } from '@/lib/gdd'
 import { estimateNLosses } from '@/lib/volatilization'
 
@@ -58,38 +59,46 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
         </div>
       )}
 
-      <PaddockDetailsForm
-        stationId={station.id}
-        cropTypes={cropTypes}
-        currentCropTypeId={station.crop_type_id}
-        currentPlantedDate={station.planted_date ? new Date(station.planted_date).toISOString().slice(0, 10) : null}
-        currentHectares={station.hectares}
-        currentSoilType={station.soil_type}
-        currentTargetYield={station.target_yield_t_ha}
-        currentActualYield={(station as any).actual_yield_t_ha ?? null}
-        currentStoredSoilWater={(station as any).stored_soil_water_mm ? parseFloat(String((station as any).stored_soil_water_mm)) : null}
-        currentOrganicCarbon={(station as any).organic_carbon_pct ? parseFloat(String((station as any).organic_carbon_pct)) : null}
-        ws90Serial={(station as any).ws90_serial ?? null}
-        latitude={station.latitude ?? null}
-        longitude={station.longitude ?? null}
-      />
+      <CollapsibleSection title="Paddock details" defaultOpen={true}>
+        <PaddockDetailsForm
+          stationId={station.id}
+          cropTypes={cropTypes}
+          currentCropTypeId={station.crop_type_id}
+          currentPlantedDate={station.planted_date ? new Date(station.planted_date).toISOString().slice(0, 10) : null}
+          currentHectares={station.hectares}
+          currentSoilType={station.soil_type}
+          currentTargetYield={station.target_yield_t_ha}
+          currentActualYield={(station as any).actual_yield_t_ha ?? null}
+          currentStoredSoilWater={(station as any).stored_soil_water_mm ? parseFloat(String((station as any).stored_soil_water_mm)) : null}
+          currentOrganicCarbon={(station as any).organic_carbon_pct ? parseFloat(String((station as any).organic_carbon_pct)) : null}
+          ws90Serial={(station as any).ws90_serial ?? null}
+          latitude={station.latitude ?? null}
+          longitude={station.longitude ?? null}
+        />
+      </CollapsibleSection>
 
-      <ZonesSection stationId={station.id} zones={zones} cropTypes={cropTypes} />
+      <CollapsibleSection title={`Zones (${zones.length})`} defaultOpen={zones.length > 0}>
+        <ZonesSection stationId={station.id} zones={zones} cropTypes={cropTypes} />
+      </CollapsibleSection>
 
-      <NitrogenApplicationsSection
-        stationId={station.id}
-        zones={zones.map(z => ({ id: z.id, name: z.name, soil_type: z.soil_type ?? null }))}
-        products={nitrogenProducts}
-        applications={appsWithWeather}
-        paddockSoilType={station.soil_type ?? null}
-      />
+      <CollapsibleSection title={`Nitrogen applications (${nitrogenApplications.length})`} defaultOpen={nitrogenApplications.length > 0}>
+        <NitrogenApplicationsSection
+          stationId={station.id}
+          zones={zones.map(z => ({ id: z.id, name: z.name, soil_type: z.soil_type ?? null }))}
+          products={nitrogenProducts}
+          applications={appsWithWeather}
+          paddockSoilType={station.soil_type ?? null}
+        />
+      </CollapsibleSection>
 
-      <SoilTestsSection
-        stationId={station.id}
-        zones={zones.map(z => ({ id: z.id, name: z.name }))}
-        nitrogenTests={nitrogenTests}
-        phosphorusTests={phosphorusTests}
-      />
+      <CollapsibleSection title={`Soil tests (${nitrogenTests.length + phosphorusTests.length})`} defaultOpen={nitrogenTests.length > 0 || phosphorusTests.length > 0}>
+        <SoilTestsSection
+          stationId={station.id}
+          zones={zones.map(z => ({ id: z.id, name: z.name }))}
+          nitrogenTests={nitrogenTests}
+          phosphorusTests={phosphorusTests}
+        />
+      </CollapsibleSection>
 
       <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
         For weather history, click Temp / Humidity / Wind / Rain on the <Link href="/" style={{ color: 'var(--orange)' }}>main dashboard</Link>.
