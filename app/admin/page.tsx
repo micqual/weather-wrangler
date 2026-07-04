@@ -29,6 +29,14 @@ export default async function AdminPage() {
   const assigned = stations.filter(s => s.farm_id)
   const cropById = new Map(cropTypes.map(c => [c.id, c]))
   const stationsWithGps = stations.filter(s => s.latitude && s.longitude).length
+  const safeFarmers = farmers.map(f => ({ id: f.id, name: f.name, email: f.email }))
+  const safeFarms = farms.map(f => ({ ...f, farmers: { name: f.farmers.name } }))
+  const safeCropTypes = cropTypes.map(c => ({
+    id: c.id,
+    crop_name: c.crop_name,
+    variety: c.variety,
+    grain_price_per_tonne: c.grain_price_per_tonne != null ? parseFloat(String(c.grain_price_per_tonne)) : null,
+  }))
 
   return (
     <div style={{ minHeight: '100vh', padding: '32px 24px', maxWidth: 900, margin: '0 auto' }}>
@@ -87,7 +95,7 @@ export default async function AdminPage() {
           <form action={createFarm}>
             <select className="input" name="farmer_id" required style={{ marginBottom: 10 }}>
               <option value="">Select farmer…</option>
-              {farmers.map(f => (
+              {safeFarmers.map(f => (
                 <option key={f.id} value={f.id}>{f.name} ({f.email})</option>
               ))}
             </select>
@@ -100,7 +108,7 @@ export default async function AdminPage() {
         <div className="card" style={{ padding: 20 }}>
           <h3 style={titleStyle}>5. Add a paddock</h3>
           <p style={hintStyle}>Links a registered station to a farm.</p>
-          <PaddockForm stations={stations} farms={farms} />
+          <PaddockForm stations={stations} farms={safeFarms} />
         </div>
 
         <div className="card" style={{ padding: 20 }}>
@@ -114,14 +122,14 @@ export default async function AdminPage() {
           <p style={hintStyle}>Update grain prices and fertiliser cost for economic N optimum calculations.</p>
           <SettingsForm
             nCost={settings ? parseFloat(String(settings.n_cost_per_kg_n)) : 1.20}
-            cropTypes={cropTypes}
+            cropTypes={safeCropTypes}
           />
         </div>
 
         <div className="card" style={{ padding: 20 }}>
           <h3 style={titleStyle}>7. Reset a farmer's password</h3>
           <p style={hintStyle}>Sets a new password directly — shown once after saving.</p>
-          <ResetPasswordForm farmers={farmers} />
+          <ResetPasswordForm farmers={safeFarmers} />
         </div>
       </div>
 

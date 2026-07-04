@@ -14,15 +14,19 @@ export type StationMarker = {
 export default function AdminMap({ stations }: { stations: StationMarker[] }) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
+  const initializedRef = useRef(false)
 
   useEffect(() => {
-    if (!mapRef.current) return
-    if (mapInstanceRef.current) return
-
-    // Check if Leaflet already initialized this container
-    if ((mapRef.current as any)._leaflet_id) return
+    if (!mapRef.current || initializedRef.current) return
+    initializedRef.current = true
 
     import('leaflet').then(L => {
+      // If container already has a map, remove it first
+      if ((mapRef.current as any)?._leaflet_id) {
+        const existingMap = (mapRef.current as any)._leaflet_map
+        if (existingMap) existingMap.remove()
+      }
+
       delete (L.Icon.Default.prototype as any)._getIconUrl
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -31,9 +35,7 @@ export default function AdminMap({ stations }: { stations: StationMarker[] }) {
       })
 
       const map = L.map(mapRef.current!, { preferCanvas: true }).setView(
-        stations.length > 0
-          ? [stations[0].latitude, stations[0].longitude]
-          : [-35.0, 142.0],
+        stations.length > 0 ? [stations[0].latitude, stations[0].longitude] : [-35.0, 142.0],
         12
       )
 
@@ -83,6 +85,7 @@ export default function AdminMap({ stations }: { stations: StationMarker[] }) {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove()
         mapInstanceRef.current = null
+        initializedRef.current = false
       }
     }
   }, [])

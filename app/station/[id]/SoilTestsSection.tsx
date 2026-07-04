@@ -1,6 +1,7 @@
 import { deleteNitrogenTest, deletePhosphorusTest } from '@/lib/soilTestActions'
 import AddNitrogenTestForm from './AddNitrogenTestForm'
 import AddPhosphorusTestForm from './AddPhosphorusTestForm'
+import PhosphorusPanel from './PhosphorusPanel'
 
 type Zone = { id: string; name: string }
 type NTest = {
@@ -31,18 +32,20 @@ export default function SoilTestsSection({
   zones,
   nitrogenTests,
   phosphorusTests,
+  targetYieldTHa,
+  hectares,
+  cropName,
 }: {
   stationId: string
   zones: Zone[]
   nitrogenTests: NTest[]
   phosphorusTests: PTest[]
+  targetYieldTHa?: number | null
+  hectares?: number | null
+  cropName?: string | null
 }) {
   return (
     <div>
-      <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-        Soil Tests
-      </h3>
-
       <h4 style={{ fontSize: 13, fontWeight: 600, color: 'var(--purple)', margin: '0 0 8px' }}>Nitrogen</h4>
       {nitrogenTests.length === 0 && <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 8px' }}>No nitrogen tests yet.</p>}
       {nitrogenTests.map(t => (
@@ -65,21 +68,54 @@ export default function SoilTestsSection({
       <h4 style={{ fontSize: 13, fontWeight: 600, color: 'var(--orange)', margin: '20px 0 8px' }}>Phosphorus</h4>
       {phosphorusTests.length === 0 && <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 8px' }}>No phosphorus tests yet.</p>}
       {phosphorusTests.map(t => (
-        <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', padding: '6px 0', borderTop: '1px solid var(--border)' }}>
-          <span>
-            {new Date(t.tested_at).toLocaleDateString('en-AU')} · {levelLabel(t.zone_id, zones)}
-            {t.p_colwell_mg_kg != null ? ` · P (Colwell) ${t.p_colwell_mg_kg} mg/kg` : ''}
-            {t.pbi != null ? ` · PBI ${t.pbi}` : ''}
-            {t.ph_cacl2 != null ? ` · pH ${t.ph_cacl2}` : ''}
-          </span>
-          <form action={deletePhosphorusTest}>
-            <input type="hidden" name="id" value={t.id} />
-            <input type="hidden" name="station_id" value={stationId} />
-            <button type="submit" style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: 12, cursor: 'pointer' }}>Remove</button>
-          </form>
+        <div key={t.id} style={{ padding: '8px 0', borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)' }}>
+            <span>
+              {new Date(t.tested_at).toLocaleDateString('en-AU')} · {levelLabel(t.zone_id, zones)}
+              {t.p_colwell_mg_kg != null ? ` · P (Colwell) ${t.p_colwell_mg_kg} mg/kg` : ''}
+              {t.pbi != null ? ` · PBI ${t.pbi}` : ''}
+              {t.ph_cacl2 != null ? ` · pH ${t.ph_cacl2}` : ''}
+            </span>
+            <form action={deletePhosphorusTest}>
+              <input type="hidden" name="id" value={t.id} />
+              <input type="hidden" name="station_id" value={stationId} />
+              <button type="submit" style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: 12, cursor: 'pointer' }}>Remove</button>
+            </form>
+          </div>
         </div>
       ))}
+
+      {/* P interpretation for paddock-level tests */}
+      {phosphorusTests.filter(t => !t.zone_id).length > 0 && (
+        <PhosphorusPanel
+          tests={phosphorusTests.filter(t => !t.zone_id)}
+          targetYieldTHa={targetYieldTHa ?? null}
+          hectares={hectares ?? null}
+          cropName={cropName ?? null}
+        />
+      )}
+
+      {/* P interpretation per zone */}
+      {zones.map(z => {
+        const zoneTests = phosphorusTests.filter(t => t.zone_id === z.id)
+        if (zoneTests.length === 0) return null
+        return (
+          <PhosphorusPanel
+            key={z.id}
+            tests={zoneTests}
+            targetYieldTHa={targetYieldTHa ?? null}
+            hectares={hectares ?? null}
+            cropName={cropName ?? null}
+            zoneName={z.name}
+          />
+        )
+      })}
+
       <AddPhosphorusTestForm stationId={stationId} zones={zones} />
+
+      <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+        Critical Colwell P calculated from PBI using Moody (2007) formula. Capital P estimates are indicative — confirm with your agronomist.
+      </div>
     </div>
   )
 }

@@ -15,10 +15,10 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
   const session = await auth()
   if (!session?.user) redirect('/login')
 
-  const station = await prisma.stations.findFirst({ where: { id, farmer_id: (session.user as any).id } })
+  const station = await prisma.stations.findFirst({ where: { id, farmer_id: (session.user as any).id }, include: { crop_types: true } })
   if (!station) notFound()
 
-  const [cropTypes, zones, nitrogenTests, phosphorusTests, nitrogenApplications, nitrogenProducts] = await Promise.all([
+  const [rawCropTypes, zones, nitrogenTests, phosphorusTests, nitrogenApplications, nitrogenProducts] = await Promise.all([
     prisma.crop_types.findMany({ orderBy: { id: 'asc' } }),
     prisma.zones.findMany({ where: { station_id: id }, orderBy: { created_at: 'asc' } }),
     prisma.nitrogen_soil_tests.findMany({ where: { station_id: id }, orderBy: { tested_at: 'desc' } }),
@@ -26,6 +26,8 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
     prisma.nitrogen_applications.findMany({ where: { station_id: id }, orderBy: { applied_at: 'desc' } }),
     prisma.nitrogen_products.findMany({ orderBy: { id: 'asc' } }),
   ])
+
+  const cropTypes = rawCropTypes.map(c => ({ id: c.id, crop_name: c.crop_name, variety: c.variety }))
 
   const appsWithWeather = await Promise.all(
     nitrogenApplications.map(async a => {
