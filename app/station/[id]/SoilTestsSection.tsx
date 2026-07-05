@@ -3,6 +3,7 @@ import AddNitrogenTestForm from './AddNitrogenTestForm'
 import AddPhosphorusTestForm from './AddPhosphorusTestForm'
 import PhosphorusPanel from './PhosphorusPanel'
 import PHPanel from './PHPanel'
+import NutrientInterpretationPanel from './NutrientInterpretationPanel'
 
 type Zone = { id: string; name: string }
 type NTest = {
@@ -66,6 +67,19 @@ export default function SoilTestsSection({
           </form>
         </div>
       ))}
+      {nitrogenTests.filter(t => !t.zone_id).length > 0 && (() => {
+        const latest = nitrogenTests.filter(t => !t.zone_id)[0]
+        return (
+          <NutrientInterpretationPanel
+            sulphurMgKg={latest.sulphur_mg_kg ?? null}
+            chlorideMgKg={latest.chloride_mg_kg ?? null}
+            currentPH={phosphorusTests.filter(t => !t.zone_id)[0]?.ph_cacl2 ?? null}
+            soilType={soilType ?? null}
+            cropName={cropName ?? null}
+            hectares={hectares ?? null}
+          />
+        )
+      })()}
       <AddNitrogenTestForm stationId={stationId} zones={zones} />
 
       <h4 style={{ fontSize: 13, fontWeight: 600, color: 'var(--orange)', margin: '20px 0 8px' }}>Phosphorus</h4>
