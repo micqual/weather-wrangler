@@ -8,6 +8,8 @@ import SoilTestsSection from './SoilTestsSection'
 import NitrogenApplicationsSection from './NitrogenApplicationsSection'
 import CollapsibleSection from './CollapsibleSection'
 import PolygonSection from './PolygonSection'
+import IrrigationSection from './IrrigationSection'
+import ManualRainSection from './ManualRainSection'
 import { getPostApplicationWeather } from '@/lib/gdd'
 import { estimateNLosses } from '@/lib/volatilization'
 
@@ -19,7 +21,7 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
   const station = await prisma.stations.findFirst({ where: { id, farmer_id: (session.user as any).id }, include: { crop_types: true } })
   if (!station) notFound()
 
-  const [rawCropTypes, zones, nitrogenTests, phosphorusTests, nitrogenApplications, nitrogenProducts, polygons] = await Promise.all([
+  const [rawCropTypes, zones, nitrogenTests, phosphorusTests, nitrogenApplications, nitrogenProducts, polygons, irrigationLogs, manualRain] = await Promise.all([
     prisma.crop_types.findMany({ orderBy: { id: 'asc' } }),
     prisma.zones.findMany({ where: { station_id: id }, orderBy: { created_at: 'asc' } }),
     prisma.nitrogen_soil_tests.findMany({ where: { station_id: id }, orderBy: { tested_at: 'desc' } }),
@@ -27,6 +29,8 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
     prisma.nitrogen_applications.findMany({ where: { station_id: id }, orderBy: { applied_at: 'desc' } }),
     prisma.nitrogen_products.findMany({ orderBy: { id: 'asc' } }),
     prisma.paddock_polygons.findMany({ where: { station_id: id }, orderBy: { created_at: 'asc' } }),
+    prisma.irrigation_logs.findMany({ where: { station_id: id }, orderBy: { irrigated_at: 'desc' } }),
+    prisma.manual_rain_entries.findMany({ where: { station_id: id }, orderBy: { rain_date: 'desc' } }),
   ])
 
   const cropTypes = rawCropTypes.map(c => ({ id: c.id, crop_name: c.crop_name, variety: c.variety }))
@@ -101,6 +105,21 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
           zones={zones.map(z => ({ id: z.id, name: z.name }))}
           nitrogenTests={nitrogenTests}
           phosphorusTests={phosphorusTests}
+        />
+      </CollapsibleSection>
+
+      <CollapsibleSection title={`Irrigation log (${irrigationLogs.length})`} defaultOpen={irrigationLogs.length > 0}>
+        <IrrigationSection
+          stationId={station.id}
+          zones={zones.map(z => ({ id: z.id, name: z.name }))}
+          logs={irrigationLogs}
+        />
+      </CollapsibleSection>
+
+      <CollapsibleSection title={`Historical rain (${manualRain.length})`} defaultOpen={manualRain.length > 0}>
+        <ManualRainSection
+          stationId={station.id}
+          entries={manualRain}
         />
       </CollapsibleSection>
 

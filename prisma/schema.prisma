@@ -229,6 +229,8 @@ model stations {
   borrowed_station_id   String?
   agronomist_notes      agronomist_notes[]
   irrigation_events     irrigation_events[]
+  irrigation_logs       irrigation_logs[]
+  manual_rain_entries   manual_rain_entries[]
   manual_rain_events    manual_rain_events[]
   nitrogen_applications nitrogen_applications[]
   nitrogen_soil_tests   nitrogen_soil_tests[]
@@ -287,6 +289,7 @@ model zones {
   actual_yield_t_ha     Decimal?                @db.Decimal
   stored_soil_water_mm  Decimal?                @db.Decimal
   organic_carbon_pct    Decimal?                @db.Decimal
+  irrigation_logs       irrigation_logs[]
   nitrogen_applications nitrogen_applications[]
   nitrogen_soil_tests   nitrogen_soil_tests[]
   paddock_polygons      paddock_polygons[]
@@ -310,4 +313,27 @@ model paddock_polygons {
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   stations   stations  @relation(fields: [station_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   zones      zones?    @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model irrigation_logs {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  station_id   String
+  zone_id      String?   @db.Uuid
+  irrigated_at DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  amount_mm    Decimal   @db.Decimal
+  method       String?   @default("flood")
+  notes        String?
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  stations     stations  @relation(fields: [station_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  zones        zones?    @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model manual_rain_entries {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  station_id String
+  rain_date  DateTime  @db.Date
+  amount_mm  Decimal   @db.Decimal
+  notes      String?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  stations   stations  @relation(fields: [station_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
