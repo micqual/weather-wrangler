@@ -96,7 +96,19 @@ export default async function Dashboard() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
           {await Promise.all(stations.map(async s => {
-            const r = s.weather_readings[0]
+            // Use borrowed station readings if this paddock has no own readings
+            let r = s.weather_readings[0]
+            let borrowedFrom: string | null = null
+            if (!r && (s as any).borrowed_station_id) {
+              const borrowed = await prisma.weather_readings.findFirst({
+                where: { station_id: (s as any).borrowed_station_id },
+                orderBy: { created_at: 'desc' },
+              })
+              if (borrowed) {
+                r = borrowed as any
+                borrowedFrom = (s as any).borrowed_station_id
+              }
+            }
             const ws = wsStatus(r?.battery_mv ?? null)
             const esp = espStatus(r?.esp_battery_v ?? null)
             const solar = solarStatus(r?.solar_v ?? null)
@@ -155,6 +167,7 @@ export default async function Dashboard() {
                       <div style={{ fontSize: 16, fontWeight: 600 }}>{s.paddock_name ?? s.id}</div>
                     </Link>
                     <div style={{ fontSize: 12, color: age.color, marginTop: 3 }}>{age.text}</div>
+                  {borrowedFrom && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>📡 Weather from {borrowedFrom}</div>}
                   </div>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: age.dot, marginTop: 6 }} />
                 </div>

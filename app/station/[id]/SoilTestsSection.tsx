@@ -2,6 +2,7 @@ import { deleteNitrogenTest, deletePhosphorusTest } from '@/lib/soilTestActions'
 import AddNitrogenTestForm from './AddNitrogenTestForm'
 import AddPhosphorusTestForm from './AddPhosphorusTestForm'
 import PhosphorusPanel from './PhosphorusPanel'
+import PHPanel from './PHPanel'
 
 type Zone = { id: string; name: string }
 type NTest = {
@@ -35,6 +36,7 @@ export default function SoilTestsSection({
   targetYieldTHa,
   hectares,
   cropName,
+  soilType,
 }: {
   stationId: string
   zones: Zone[]
@@ -43,6 +45,7 @@ export default function SoilTestsSection({
   targetYieldTHa?: number | null
   hectares?: number | null
   cropName?: string | null
+  soilType?: string | null
 }) {
   return (
     <div>
@@ -106,6 +109,29 @@ export default function SoilTestsSection({
             targetYieldTHa={targetYieldTHa ?? null}
             hectares={hectares ?? null}
             cropName={cropName ?? null}
+            zoneName={z.name}
+          />
+        )
+      })}
+
+      {/* pH tracking — from phosphorus tests that have ph_cacl2 */}
+      {phosphorusTests.filter(t => !t.zone_id && t.ph_cacl2 != null).length > 0 && (
+        <PHPanel
+          readings={phosphorusTests.filter(t => !t.zone_id && t.ph_cacl2 != null).map(t => ({ tested_at: t.tested_at, ph_cacl2: t.ph_cacl2 as number, zone_id: t.zone_id }))}
+          cropName={cropName ?? null}
+          soilType={soilType ?? null}
+        />
+      )}
+
+      {zones.map(z => {
+        const zPhTests = phosphorusTests.filter(t => t.zone_id === z.id && t.ph_cacl2 != null)
+        if (zPhTests.length === 0) return null
+        return (
+          <PHPanel
+            key={z.id}
+            readings={zPhTests.map(t => ({ tested_at: t.tested_at, ph_cacl2: t.ph_cacl2 as number, zone_id: t.zone_id }))}
+            cropName={cropName ?? null}
+            soilType={soilType ?? null}
             zoneName={z.name}
           />
         )

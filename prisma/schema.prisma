@@ -226,6 +226,7 @@ model stations {
   stored_soil_water_mm  Decimal?                @db.Decimal
   organic_carbon_pct    Decimal?                @db.Decimal
   ws90_serial           String?
+  borrowed_station_id   String?
   agronomist_notes      agronomist_notes[]
   irrigation_events     irrigation_events[]
   manual_rain_events    manual_rain_events[]
@@ -234,6 +235,8 @@ model stations {
   paddock_agronomists   paddock_agronomists[]
   paddock_polygons      paddock_polygons[]
   phosphorus_soil_tests phosphorus_soil_tests[]
+  stations              stations?               @relation("stationsTostations", fields: [borrowed_station_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_stations        stations[]              @relation("stationsTostations")
   crop_types            crop_types?             @relation(fields: [crop_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   farms                 farms?                  @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   farmers               farmers?                @relation(fields: [farmer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)

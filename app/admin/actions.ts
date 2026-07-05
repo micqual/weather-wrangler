@@ -163,3 +163,49 @@ export async function updateCropPrice(prevState: ActionState, formData: FormData
   revalidatePath('/agronomy')
   return { success: 'Crop price updated.' }
 }
+
+export async function assignBorrowedStation(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const station_id = formData.get('station_id') as string
+  const borrowed_id = (formData.get('borrowed_station_id') as string) || null
+
+  if (!station_id) return { error: 'Select a paddock.' }
+
+  // If assigning, check distance
+  if (borrowed_id) {
+    const [s, b] = await Promise.all([
+      prisma.stations.findUnique({ where: { id: station_id } }),
+      prisma.stations.findUnique({ where: { id: borrowed_id } }),
+    ])
+
+    if (!s || !b) return { error: 'Station not found.' }
+    if (!s.latitude || !s.longitude || !b.latitude || !b.longitude) {
+      return { error: 'Both stations need GPS coordinates set before borrowing.' }
+    }
+
+    // Haversine distance
+    const R = 6371
+    const dLat = (b.latitude - s.latitude) * Math.PI / 180
+    const dLng = (b.longitude - s.longitude) * Math.PI / 180
+    const a = Math.sin(dLat/2) ** 2 +
+      Math.cos(s.latitude * Math.PI / 180) * Math.cos(b.latitude * Math.PI / 180) *
+      Math.sin(dLng/2) ** 2
+    const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+
+    if (distKm > 5) {
+      return { error: `${borrowed_id} is ${distKm.toFixed(1)} km away — maximum is 5 km.` }
+    }
+
+    if (borrowed_id === station_id) {
+      return { error: 'A station cannot borrow from itself.' }
+    }
+  }
+
+  await prisma.stations.update({
+    where: { id: station_id },
+    data: { borrowed_station_id: borrowed_id },
+  })
+
+  revalidatePath('/admin')
+  revalidatePath('/')
+  return { success: borrowed_id ? `${station_id} will now borrow weather data from ${borrowed_id}.` : `${station_id} borrowing removed.` }
+}

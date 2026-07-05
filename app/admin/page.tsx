@@ -6,6 +6,7 @@ import PaddockForm from './PaddockForm'
 import ReplaceStationForm from './ReplaceStationForm'
 import ResetPasswordForm from './ResetPasswordForm'
 import EditStationForm from './EditStationForm'
+import BorrowStationForm from './BorrowStationForm'
 import SettingsForm from './SettingsForm'
 import Link from 'next/link'
 
@@ -124,6 +125,12 @@ export default async function AdminPage() {
             nCost={settings ? parseFloat(String(settings.n_cost_per_kg_n)) : 1.20}
             cropTypes={safeCropTypes}
           />
+        </div>
+
+        <div className="card" style={{ padding: 20 }}>
+          <h3 style={titleStyle}>8. Borrow weather data</h3>
+          <p style={hintStyle}>Let a paddock use a nearby station's readings (max 5 km).</p>
+          <BorrowStationForm stations={stations} />
         </div>
 
         <div className="card" style={{ padding: 20 }}>
