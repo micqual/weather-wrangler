@@ -16,31 +16,31 @@ import { assessDiseaseRisk } from '@/lib/diseaseRisk'
 const toNum = (v: any): number | null => v == null ? null : parseFloat(String(v))
 
 function wsStatus(mv: number | null) {
-  if (mv == null) return { color: 'var(--text-muted)', label: 'No data', volts: null }
+  if (mv == null) return { color: '#a896c0', label: 'No data', volts: null }
   const v = mv / 1000
   const pct = Math.round(Math.max(0, Math.min(100, (v / 6) * 100)))
-  if (v >= 2.4) return { color: 'var(--orange)', label: `${pct}%`, volts: v }
-  if (v >= 2.0) return { color: 'var(--amber)', label: `${pct}% — low`, volts: v }
-  return { color: 'var(--red)', label: `${pct}% — critical`, volts: v }
+  if (v >= 2.4) return { color: '#f2762a', label: `${pct}%`, volts: v }
+  if (v >= 2.0) return { color: '#facc15', label: `${pct}% — low`, volts: v }
+  return { color: '#ef4444', label: `${pct}% — critical`, volts: v }
 }
 
 function espStatus(v: number | null) {
-  if (v == null) return { color: 'var(--text-muted)', label: 'No data', volts: null }
+  if (v == null) return { color: '#a896c0', label: 'No data', volts: null }
   const pct = Math.round(Math.max(0, Math.min(100, ((v - 3.0) / (4.2 - 3.0)) * 100)))
-  if (v >= 3.95) return { color: 'var(--orange)', label: `${pct}%`, volts: v }
-  if (v >= 3.7) return { color: 'var(--purple)', label: `${pct}%`, volts: v }
-  if (v >= 3.4) return { color: 'var(--amber)', label: `${pct}% — low`, volts: v }
-  return { color: 'var(--red)', label: `${pct}% — critical`, volts: v }
+  if (v >= 3.95) return { color: '#f2762a', label: `${pct}%`, volts: v }
+  if (v >= 3.7) return { color: '#b182ff', label: `${pct}%`, volts: v }
+  if (v >= 3.4) return { color: '#facc15', label: `${pct}% — low`, volts: v }
+  return { color: '#ef4444', label: `${pct}% — critical`, volts: v }
 }
 
 function solarStatus(v: number | null) {
-  if (v == null) return { color: 'var(--text-muted)', label: 'No data' }
-  if (v >= 0.15) return { color: 'var(--orange)', label: 'Charging' }
-  return { color: 'var(--purple)', label: 'Low light' }
+  if (v == null) return { color: '#a896c0', label: 'No data' }
+  if (v >= 0.15) return { color: '#f2762a', label: 'Charging' }
+  return { color: '#b182ff', label: 'Low light' }
 }
 
 function readingAge(createdAt: Date | null) {
-  if (!createdAt) return { text: 'No readings yet', color: 'var(--text-muted)' }
+  if (!createdAt) return { text: 'No readings yet', color: '#a896c0', dot: '#6b5a80' }
   const date = new Date(createdAt)
   const diffMin = Math.round((Date.now() - date.getTime()) / 60000)
   const relative =
@@ -52,8 +52,9 @@ function readingAge(createdAt: Date | null) {
     timeZone: 'Australia/Melbourne',
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   })
-  const color = diffMin > 1440 ? 'var(--red)' : diffMin > 60 ? 'var(--amber)' : 'var(--text-muted)'
-  return { text: `${formatted} · ${relative}`, color }
+  const dot = diffMin > 1440 ? '#ef4444' : diffMin > 60 ? '#facc15' : '#4ade80'
+  const color = diffMin > 1440 ? '#ef4444' : diffMin > 60 ? '#facc15' : '#a896c0'
+  return { text: `${formatted} · ${relative}`, color, dot }
 }
 
 export default async function Dashboard() {
@@ -82,26 +83,16 @@ export default async function Dashboard() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <Link href="/agronomy" style={{ border: "1px solid var(--orange)", color: "var(--orange)", borderRadius: 8, padding: "6px 14px", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
-            Agronomy
-          </Link>
-          <Link href="/nitrogen" style={{ border: "1px solid var(--purple)", color: "var(--purple)", borderRadius: 8, padding: "6px 14px", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
-            Nitrogen
-          </Link>
-          {isAdmin && (
-            <Link href="/admin" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
-              Admin
-            </Link>
-          )}
+          <Link href="/agronomy" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Agronomy</Link>
+          <Link href="/nitrogen" style={{ border: '1px solid var(--purple)', color: 'var(--purple)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Nitrogen</Link>
+          {isAdmin && <Link href="/admin" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Admin</Link>}
         </div>
       </div>
 
       {stations.length === 0 ? (
-        <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
-          No paddocks assigned yet.
-        </div>
+        <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No paddocks assigned yet.</div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
           {await Promise.all(stations.map(async s => {
             const r = s.weather_readings[0]
             const ws = wsStatus(r?.battery_mv ?? null)
@@ -148,113 +139,96 @@ export default async function Dashboard() {
 
             const sprayIcon = spray.overall === 'go' ? '🟢' : spray.overall === 'caution' ? '🟡' : '🔴'
             const frostIcon = frost.risk === 'none' ? '🟢' : frost.risk === 'watch' ? '🟡' : '🔴'
+            const deltaTIcon = spray.deltaT != null ? (spray.deltaT >= 2 && spray.deltaT <= 8 ? '🟢' : spray.deltaT <= 10 ? '🟡' : '🔴') : '—'
+
+            const S = { padding: '0 20px 20px' }
 
             return (
-              <div key={s.id} className="card" style={{ padding: 20 }}>
-                <Link href={`/station/${s.id}`} className="paddock-link">
-                  <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 600 }}>{s.paddock_name ?? s.id}</h3>
-                </Link>
-                <p style={{ margin: '0 0 16px', fontSize: 12, color: age.color }}>{age.text}</p>
+              <div key={s.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
 
-                {/* Weather stats */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
-                  <Stat href={`/station/${s.id}/temp`} icon="🌡️" label="Temp" value={r?.temperature_c != null ? `${r.temperature_c.toFixed(1)}°` : '—'} />
-                  <Stat href={`/station/${s.id}/humidity`} icon="💧" label="Humidity" value={r?.humidity != null ? `${r.humidity}%` : '—'} />
+                {/* Header */}
+                <div style={{ padding: '16px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <Link href={`/station/${s.id}/wind`} className="stat-link" style={{ border: '1px solid var(--orange)', padding: '10px 6px', textAlign: 'center', display: 'block', borderRadius: 10 }}>
-                      <div style={{ fontSize: 15, fontWeight: 700, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>💨 {windKmh ?? '—'} km/h</div>
-                      <div style={{ fontSize: 12, color: 'var(--orange)', marginTop: 2 }}>{arrow} {compass}</div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Wind</div>
+                    <Link href={`/station/${s.id}`} className="paddock-link">
+                      <div style={{ fontSize: 16, fontWeight: 600 }}>{s.paddock_name ?? s.id}</div>
                     </Link>
+                    <div style={{ fontSize: 12, color: age.color, marginTop: 3 }}>{age.text}</div>
                   </div>
-                  <Link href={`/station/${s.id}/rain`} className="stat-link" style={{ border: '1px solid var(--orange)', padding: '10px 6px', textAlign: 'center', borderRadius: 10 }}>
-                    <div style={{ fontSize: 17, fontWeight: 700, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>🌧️ {dailyRain != null ? `${dailyRain.toFixed(1)} mm` : '—'}</div>
-                    {variance?.label && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{variance.label}</div>}
-                    <div style={{ color: 'var(--text-muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Today</div>
-                  </Link>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: age.dot, marginTop: 6 }} />
                 </div>
 
-                {/* Power */}
-                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                  <div>
-                    <div style={{ color: ws.color, fontWeight: 600, fontSize: 14 }}>🔋 {ws.label}</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>WS{ws.volts != null ? ` · ${ws.volts.toFixed(2)}V` : ''}</div>
-                  </div>
-                  <div>
-                    <div style={{ color: esp.color, fontWeight: 600, fontSize: 14 }}>🔋 {esp.label}</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>Node{esp.volts != null ? ` · ${esp.volts.toFixed(2)}V` : ''}</div>
-                  </div>
-                  <div>
-                    <div style={{ color: solar.color, fontWeight: 600, fontSize: 14 }}>☀️ {solar.label}</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>Solar</div>
-                  </div>
+                {/* Weather strip */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', margin: '12px 0 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+                  {[
+                    { href: `/station/${s.id}/temp`, value: r?.temperature_c != null ? `${r.temperature_c.toFixed(1)}°` : '—', label: 'Temp' },
+                    { href: `/station/${s.id}/humidity`, value: r?.humidity != null ? `${r.humidity}%` : '—', label: 'Humidity' },
+                    { href: `/station/${s.id}/wind`, value: windKmh ? `${windKmh} km/h` : '—', sub: windKmh ? `${arrow} ${compass}` : '', label: 'Wind' },
+                    { href: `/station/${s.id}/rain`, value: dailyRain != null ? `${dailyRain.toFixed(1)} mm` : '—', sub: variance?.label ?? '', label: 'Today' },
+                  ].map((cell, i) => (
+                    <Link key={i} href={cell.href} style={{ textDecoration: 'none', color: 'inherit', padding: '12px 8px', textAlign: 'center', borderRight: i < 3 ? '1px solid var(--border)' : 'none', display: 'block' }}>
+                      <div style={{ fontSize: 18, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cell.value}</div>
+                      {cell.sub && <div style={{ fontSize: 11, color: 'var(--orange)', marginTop: 2 }}>{cell.sub}</div>}
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{cell.label}</div>
+                    </Link>
+                  ))}
                 </div>
 
-                {/* Alert cards row 1 */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 10 }}>
-                  <AlertCard border="var(--orange)" icon="💧" value={todayET != null ? `${todayET.etoMmDay} mm` : '—'} sub={<ETSparkline points={etHistory} />} label="ET/day" />
-                  <AlertCard border="var(--orange)" icon={sprayIcon} value={spray.overall === 'go' ? 'Spray' : spray.overall === 'caution' ? 'Caution' : 'No spray'} label="Spray" title={spray.conditions.map(c => `${c.label}: ${c.value}`).join(' · ')} />
-                  <AlertCard border="var(--orange)" icon={frostIcon} value={frost.risk === 'none' ? 'No frost' : frost.risk === 'watch' ? 'Watch' : 'Warning'} label="Frost" title={frost.reason ?? undefined} />
-                  <AlertCard border="var(--orange)" icon={`🚜 ${dampness.icon}`} value={dampness.level === 'dry' ? 'Drive OK' : dampness.level === 'damp' ? 'Caution' : 'Too wet'} label="Field" title={dampness.reason} />
-                </div>
-
-                {/* Disease risk card — full width, shows disease names */}
-                {disease.isCereal && (
-                  <div style={{ border: '1px solid var(--orange)', borderRadius: 10, padding: '10px 12px', marginBottom: 16 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Disease risk</span>
-                      <span style={{ fontSize: 13, fontWeight: 600 }}>{disease.icon} {disease.label}</span>
+                {/* Power strip */}
+                <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.2)' }}>
+                  {[
+                    { value: ws.label, sub: ws.volts ? `${ws.volts.toFixed(2)}V` : '', label: 'WS battery', color: ws.color },
+                    { value: esp.label, sub: esp.volts ? `${esp.volts.toFixed(2)}V` : '', label: 'Node battery', color: esp.color },
+                    { value: solar.label, sub: '', label: 'Solar', color: solar.color },
+                  ].map((cell, i) => (
+                    <div key={i} style={{ flex: 1, padding: '8px 12px', borderRight: i < 2 ? '1px solid var(--border)' : 'none' }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: cell.color }}>{cell.value}{cell.sub ? ` · ${cell.sub}` : ''}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 1 }}>{cell.label}</div>
                     </div>
-                    {disease.diseases.length > 0 && (
-                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {disease.diseases.map(d => (
-                          <span key={d.name} title={d.reason} style={{
-                            fontSize: 11,
-                            padding: '2px 8px',
-                            borderRadius: 12,
-                            background: d.level === 'high' ? 'rgba(239,68,68,0.1)' : 'rgba(250,204,21,0.1)',
-                            color: d.level === 'high' ? '#f87171' : '#fbbf24',
-                            cursor: 'default',
-                          }}>
-                            {d.name}
-                          </span>
-                        ))}
-                      </div>
+                  ))}
+                </div>
+
+                {/* Field conditions list */}
+                <div style={{ padding: '12px 20px 0' }}>
+                  <div style={{ fontSize: 10, color: '#6b5a80', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, fontWeight: 500 }}>Field conditions</div>
+                </div>
+                <div style={{ margin: '0 20px', background: 'rgba(0,0,0,0.2)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 12 }}>
+                  {[
+                    { name: 'Evapotranspiration', value: todayET ? `${todayET.etoMmDay} mm/day` : '—', status: null, detail: null, extra: <ETSparkline points={etHistory} /> },
+                    { name: 'Delta T', value: spray.deltaT != null ? `${spray.deltaT.toFixed(1)}°C` : '—', status: deltaTIcon, detail: spray.deltaT != null ? (spray.deltaT < 2 ? 'below optimal' : spray.deltaT > 8 ? 'above optimal' : '2–8°C optimal') : null },
+                    { name: 'Spray window', value: spray.overall === 'go' ? 'Good to spray' : spray.overall === 'caution' ? 'Spray with caution' : 'Do not spray', status: sprayIcon, detail: null },
+                    { name: 'Frost risk', value: frost.risk === 'none' ? 'No frost risk' : frost.risk === 'watch' ? 'Frost watch' : frost.risk === 'warning' ? 'Frost warning' : 'Frost!', status: frostIcon, detail: null },
+                    { name: 'Field trafficability', value: dampness.level === 'dry' ? 'Drive OK' : dampness.level === 'damp' ? 'Proceed with caution' : 'Do not drive', status: dampness.icon, detail: dampness.reason },
+                    ...(disease.isCereal ? [{ name: 'Disease risk', value: disease.label, status: disease.icon, detail: disease.diseases.length > 0 ? disease.diseases.map(d => d.name).join(', ') : null }] : []),
+                    ...(heat && heat.level !== 'none' ? [{ name: 'Heat stress', value: heat.label, status: heat.level === 'severe' ? '🔴' : '🟡', detail: heat.reason }] : []),
+                  ].map((row, i, arr) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '9px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', gap: 10 }}>
+                      <div style={{ fontSize: 13, color: 'var(--text-muted)', flex: 1 }}>{row.name}</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap' }}>{row.value}</div>
+                      {row.extra && <div style={{ marginLeft: 4 }}>{row.extra}</div>}
+                      {row.status && <div style={{ fontSize: 13, marginLeft: 4, flexShrink: 0 }}>{row.status}</div>}
+                      {row.detail && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }} title={row.detail}>· {row.detail}</div>}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Crop progress */}
+                {(s.crop_types && s.planted_date) || s.zones.some(z => z.crop_types && z.planted_date) ? (
+                  <div style={{ padding: '0 20px 16px' }}>
+                    <div style={{ fontSize: 10, color: '#6b5a80', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, fontWeight: 500 }}>Crop progress</div>
+                    {s.crop_types && s.planted_date && (
+                      <GddCard
+                        title={`🌱 ${s.crop_types.crop_name} (${s.crop_types.variety})`}
+                        baseTemp={cropBaseTemp}
+                        target={cropTargetGdd}
+                        dailyAvgTemps={dailyAvgTemps}
+                        plantedDate={s.planted_date}
+                      />
                     )}
-                    {disease.diseases.length === 0 && (
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>No significant disease conditions</div>
-                    )}
-                  </div>
-                )}
-
-                {/* Heat stress — only when relevant */}
-                {heat && heat.level !== 'none' && (
-                  <div style={{ border: '1px solid var(--orange)', borderRadius: 10, padding: '8px 12px', marginBottom: 16, fontSize: 13 }}>
-                    <span style={{ fontWeight: 600 }}>{heat.level === 'severe' ? '🔴' : '🟡'} {heat.label}</span>
-                    <span style={{ color: 'var(--text-muted)', marginLeft: 8, fontSize: 12 }}>{heat.reason}</span>
-                  </div>
-                )}
-
-                {/* GDD */}
-                {s.crop_types && s.planted_date && (
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-                    <GddCard
-                      title={`🌱 ${s.crop_types.crop_name} (${s.crop_types.variety})`}
-                      baseTemp={cropBaseTemp}
-                      target={cropTargetGdd}
-                      dailyAvgTemps={dailyAvgTemps}
-                      plantedDate={s.planted_date}
-                    />
-                  </div>
-                )}
-
-                {s.zones.filter(z => z.crop_types).map(z => {
-                  const zBaseTemp = toNum(z.crop_types?.base_temp_gdd)
-                  const zTargetGdd = toNum(z.crop_types?.target_gdd_harvest)
-                  return (
-                    <div key={z.id}>
-                      {z.planted_date && (
-                        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 10 }}>
+                    {s.zones.filter(z => z.crop_types && z.planted_date).map(z => {
+                      const zBaseTemp = toNum(z.crop_types?.base_temp_gdd)
+                      const zTargetGdd = toNum(z.crop_types?.target_gdd_harvest)
+                      return (
+                        <div key={z.id} style={{ marginTop: 10 }}>
                           <GddCard
                             title={`🌱 ${z.name} — ${z.crop_types!.crop_name} (${z.crop_types!.variety})`}
                             baseTemp={zBaseTemp}
@@ -263,41 +237,17 @@ export default async function Dashboard() {
                             plantedDate={z.planted_date}
                           />
                         </div>
-                      )}
-                    </div>
-                  )
-                })}
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ height: 16 }} />
+                )}
               </div>
             )
           }))}
         </div>
       )}
-    </div>
-  )
-}
-
-function Stat({ href, icon, label, value }: { href: string; icon: string; label: string; value: string }) {
-  return (
-    <Link href={href} className="stat-link" style={{ border: '1px solid var(--orange)', padding: '10px 6px', textAlign: 'center' }}>
-      <div style={{ fontSize: 17, fontWeight: 700, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{icon} {value}</div>
-      <div style={{ color: 'var(--text-muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{label}</div>
-    </Link>
-  )
-}
-
-function AlertCard({ border, icon, value, sub, label, title }: {
-  border: string
-  icon: string
-  value: string
-  sub?: React.ReactNode
-  label: string
-  title?: string
-}) {
-  return (
-    <div title={title} style={{ border: `1px solid ${border}`, borderRadius: 10, padding: '10px 6px', textAlign: 'center' }}>
-      <div style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{icon} {value}</div>
-      {sub && <div style={{ marginTop: 2 }}>{sub}</div>}
-      <div style={{ color: 'var(--text-muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{label}</div>
     </div>
   )
 }
