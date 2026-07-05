@@ -89,7 +89,7 @@ export default async function AgronomyPage() {
       variety: s.crop_types.variety,
     } : null
 
-    return { station: s, safeCropType, nBudget, yieldResult, curve, currentAppliedN, zones }
+    return { station: s, safeCropType, nBudget, yieldResult, curve, currentAppliedN, zones, grainPrice }
   }))
 
   return (
