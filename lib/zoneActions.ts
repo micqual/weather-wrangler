@@ -25,6 +25,7 @@ export async function createZone(prevState: ActionState, formData: FormData): Pr
   const hectares = formData.get('hectares') as string
   const target_yield = formData.get('target_yield_t_ha') as string
   const actual_yield = formData.get('actual_yield_t_ha') as string
+  const growth_stage = formData.get('growth_stage') as string
 
   const station = await assertOwnsStation(station_id)
   if (!station) return { error: 'Not your paddock.' }
@@ -39,6 +40,7 @@ export async function createZone(prevState: ActionState, formData: FormData): Pr
       hectares: hectares || null,
       target_yield_t_ha: target_yield ? parseFloat(target_yield) : null,
       actual_yield_t_ha: actual_yield ? parseFloat(actual_yield) : null,
+      growth_stage: growth_stage || null,
     },
   })
 

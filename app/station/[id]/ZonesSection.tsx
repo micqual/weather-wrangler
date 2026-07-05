@@ -10,6 +10,7 @@ type Zone = {
   hectares: any
   target_yield_t_ha: any
   actual_yield_t_ha: any
+  growth_stage?: string | null
 }
 type CropType = { id: number; crop_name: string | null; variety: string | null }
 
@@ -36,6 +37,7 @@ export default function ZonesSection({ stationId, zones, cropTypes }: { stationI
                   {z.soil_type ? ` · ${z.soil_type}` : ''}
                   {z.hectares ? ` · ${z.hectares} ha` : ''}
                   {z.planted_date ? ` · planted ${new Date(z.planted_date).toLocaleDateString('en-AU')}` : ''}
+                  {(z as any).growth_stage ? ` · ${(z as any).growth_stage}` : ''}
                 </span>
                 {(z.target_yield_t_ha != null || z.actual_yield_t_ha != null) && (
                   <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-muted)' }}>

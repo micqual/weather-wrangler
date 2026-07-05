@@ -24,6 +24,7 @@ export default function AddZoneForm({ stationId, cropTypes }: { stationId: strin
         <input className="input" name="hectares" type="number" step="0.1" placeholder="Size (ha)" />
         <input className="input" name="target_yield_t_ha" type="number" step="0.01" placeholder="Target yield (t/ha)" />
         <input className="input" name="actual_yield_t_ha" type="number" step="0.01" placeholder="Actual yield (t/ha)" />
+        <input className="input" name="growth_stage" placeholder="Growth stage (e.g. Tillering, Flowering)" />
       </div>
       {state?.error && <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 10 }}>{state.error}</p>}
       {state?.success && <p style={{ color: 'var(--orange)', fontSize: 13, marginBottom: 10 }}>{state.success}</p>}
