@@ -7,8 +7,6 @@ type Station = { id: string; paddock_name: string | null; latitude: number | nul
 
 export default function BorrowStationForm({ stations }: { stations: Station[] }) {
   const [state, formAction, pending] = useActionState(assignBorrowedStation, null)
-  const assigned = stations.filter(s => s.farm_id)
-  
   return (
     <form action={formAction}>
       <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Paddock without its own station</label>
