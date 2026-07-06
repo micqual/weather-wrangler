@@ -51,7 +51,7 @@ export default function EditStationForm({ stations }: { stations: Station[] }) {
         </form>
         <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Public station URL</div>
-          
+          <a
             href={`https://weather-wrangler.vercel.app/public/station/${selected.id}`}
             target="_blank"
             rel="noopener noreferrer"
