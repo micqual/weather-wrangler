@@ -34,32 +34,35 @@ export default function EditStationForm({ stations }: { stations: Station[] }) {
       </select>
 
       {selected && (
-        <form action={formAction}>
-          <input type="hidden" name="id" value={selected.id} />
-          <input className="input" name="paddock_name" placeholder="Paddock name" defaultValue={selected.paddock_name ?? ''} style={{ marginBottom: 10 }} />
-          <input className="input" name="ws90_serial" placeholder="WS90 serial number" defaultValue={(selected as any).ws90_serial ?? ''} style={{ marginBottom: 10 }} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
-            <input className="input" name="latitude" type="number" step="0.000001" placeholder="Latitude" defaultValue={selected.latitude ?? ''} />
-            <input className="input" name="longitude" type="number" step="0.000001" placeholder="Longitude" defaultValue={selected.longitude ?? ''} />
-            <input className="input" name="elevation_m" type="number" step="1" placeholder="Elevation (m)" defaultValue={selected.elevation_m ?? ''} />
+        <>
+          <form action={formAction}>
+            <input type="hidden" name="id" value={selected.id} />
+            <input className="input" name="paddock_name" placeholder="Paddock name" defaultValue={selected.paddock_name ?? ''} style={{ marginBottom: 10 }} />
+            <input className="input" name="ws90_serial" placeholder="WS90 serial number" defaultValue={(selected as any).ws90_serial ?? ''} style={{ marginBottom: 10 }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <input className="input" name="latitude" type="number" step="0.000001" placeholder="Latitude" defaultValue={selected.latitude ?? ''} />
+              <input className="input" name="longitude" type="number" step="0.000001" placeholder="Longitude" defaultValue={selected.longitude ?? ''} />
+              <input className="input" name="elevation_m" type="number" step="1" placeholder="Elevation (m)" defaultValue={selected.elevation_m ?? ''} />
+            </div>
+            {state?.error && <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 10 }}>{state.error}</p>}
+            {state?.success && <p style={{ color: 'var(--orange)', fontSize: 13, marginBottom: 10 }}>{state.success}</p>}
+            <button className="btn-primary" type="submit" disabled={pending}>
+              {pending ? 'Saving…' : 'Save changes'}
+            </button>
+          </form>
+
+          <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Public station URL</div>
+            
+              href={'https://weather-wrangler.vercel.app/public/station/' + selected.id}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: 12, color: 'var(--orange)', wordBreak: 'break-all' }}
+            >
+              {'weather-wrangler.vercel.app/public/station/' + selected.id}
+            </a>
           </div>
-          {state?.error && <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 10 }}>{state.error}</p>}
-          {state?.success && <p style={{ color: 'var(--orange)', fontSize: 13, marginBottom: 10 }}>{state.success}</p>}
-          <button className="btn-primary" type="submit" disabled={pending}>
-            {pending ? 'Saving…' : 'Save changes'}
-          </button>
-        </form>
-        <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Public station URL</div>
-          <a
-            href={`https://weather-wrangler.vercel.app/public/station/${selected.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ fontSize: 12, color: 'var(--orange)', wordBreak: 'break-all' }}
-          >
-            weather-wrangler.vercel.app/public/station/{selected.id}
-          </a>
-        </div>
+        </>
       )}
     </div>
   )
