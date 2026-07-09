@@ -35,8 +35,10 @@ function espStatus(v: number | null) {
 
 function solarStatus(v: number | null) {
   if (v == null) return { color: '#a896c0', label: 'No data' }
-  if (v >= 0.15) return { color: '#f2762a', label: 'Charging' }
-  return { color: '#b182ff', label: 'Low light' }
+  if (v >= 3.5) return { color: '#4ade80', label: '🟢 Charging well' }
+  if (v >= 2.0) return { color: '#facc15', label: '🟡 Charging' }
+  if (v >= 0.1) return { color: '#f97316', label: '🟡 Partial' }
+  return { color: '#a896c0', label: '⚫ No light' }
 }
 
 function readingAge(createdAt: Date | null) {
@@ -194,7 +196,7 @@ export default async function Dashboard() {
                   {[
                     { value: ws.label, sub: ws.volts ? `${ws.volts.toFixed(2)}V` : '', label: 'WS battery', color: ws.color },
                     { value: esp.label, sub: esp.volts ? `${esp.volts.toFixed(2)}V` : '', label: 'Node battery', color: esp.color },
-                    { value: solar.label, sub: '', label: 'Solar', color: solar.color },
+                    { value: solar.label, sub: r?.solar_v != null ? `${(r.solar_v as number).toFixed(2)}V` : '', label: 'Solar', color: solar.color },
                   ].map((cell, i) => (
                     <div key={i} style={{ flex: 1, padding: '8px 12px', borderRight: i < 2 ? '1px solid var(--border)' : 'none' }}>
                       <div style={{ fontSize: 13, fontWeight: 500, color: cell.color }}>{cell.value}{cell.sub ? ` · ${cell.sub}` : ''}</div>
@@ -210,19 +212,22 @@ export default async function Dashboard() {
                 <div style={{ margin: '0 20px', background: 'rgba(0,0,0,0.2)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 12 }}>
                   {[
                     { name: 'Evapotranspiration', value: todayET ? `${todayET.etoMmDay} mm/day` : '—', status: null, detail: null, extra: <ETSparkline points={etHistory} /> },
-                    { name: 'Delta T', value: spray.deltaT != null ? `${spray.deltaT.toFixed(1)}°C` : '—', status: deltaTIcon, detail: spray.deltaT != null ? (spray.deltaT < 2 ? 'below optimal' : spray.deltaT > 8 ? 'above optimal' : '2–8°C optimal') : null },
-                    { name: 'Spray window', value: spray.overall === 'go' ? 'Good to spray' : spray.overall === 'caution' ? 'Spray with caution' : 'Do not spray', status: sprayIcon, detail: null },
+                    { name: 'Delta T', value: spray.deltaT != null ? `${spray.deltaT.toFixed(1)}°C` : '—', status: deltaTIcon, detail: null, subDetail: spray.deltaT != null ? (spray.deltaT < 2 ? '2–8°C optimal range — current too low' : spray.deltaT > 8 ? '2–8°C optimal range — current too high' : '2–8°C optimal') : null },
+                    { name: 'Spray window', subDetail: spray.overall !== 'go' ? spray.conditions.filter(c => c.status !== 'go').map(c => `${c.label}: ${c.value} (${c.reason})`).join(' · ') : null, value: spray.overall === 'go' ? 'Good to spray' : spray.overall === 'caution' ? 'Spray with caution' : 'Do not spray', status: sprayIcon, detail: null },
                     { name: 'Frost risk', value: frost.risk === 'none' ? 'No frost risk' : frost.risk === 'watch' ? 'Frost watch' : frost.risk === 'warning' ? 'Frost warning' : 'Frost!', status: frostIcon, detail: null },
-                    { name: 'Field trafficability', value: dampness.level === 'dry' ? 'Drive OK' : dampness.level === 'damp' ? 'Proceed with caution' : 'Do not drive', status: dampness.icon, detail: dampness.reason },
+                    { name: 'Field trafficability', value: dampness.level === 'dry' ? 'Drive OK' : dampness.level === 'damp' ? 'Proceed with caution' : 'Do not drive', status: dampness.icon, detail: null, subDetail: dampness.reason },
                     ...(disease.isCereal ? [{ name: 'Disease risk', value: disease.label, status: disease.icon, detail: disease.diseases.length > 0 ? disease.diseases.map(d => d.name).join(', ') : null }] : []),
                     ...(heat && heat.level !== 'none' ? [{ name: 'Heat stress', value: heat.label, status: heat.level === 'severe' ? '🔴' : '🟡', detail: heat.reason }] : []),
                   ].map((row, i, arr) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '9px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', gap: 10 }}>
+                    <div key={i} style={{ padding: '9px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ fontSize: 13, color: 'var(--text-muted)', flex: 1 }}>{row.name}</div>
                       <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap' }}>{row.value}</div>
                       {row.extra && <div style={{ marginLeft: 4 }}>{row.extra}</div>}
                       {row.status && <div style={{ fontSize: 13, marginLeft: 4, flexShrink: 0 }}>{row.status}</div>}
                       {row.detail && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }} title={row.detail}>· {row.detail}</div>}
+                      </div>
+                      {(row as any).subDetail && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, paddingLeft: 0 }}>{(row as any).subDetail}</div>}
                     </div>
                   ))}
                 </div>
