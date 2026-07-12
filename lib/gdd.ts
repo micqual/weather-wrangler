@@ -232,3 +232,75 @@ export async function getRainStats(stationId: string, prisma: any): Promise<{
 
   return { rainLast24h, rainLast72h, daysSinceLastRain }
 }
+
+// Fetch historical daily average temps from Open-Meteo for GDD gap filling
+export async function fetchBOMDailyTemps(
+  latitude: number,
+  longitude: number,
+  startDate: string,
+  endDate: string
+): Promise<{ date: string; avgTemp: number }[]> {
+  const params = new URLSearchParams({
+    latitude: latitude.toString(),
+    longitude: longitude.toString(),
+    start_date: startDate,
+    end_date: endDate,
+    daily: 'temperature_2m_max,temperature_2m_min',
+    timezone: 'Australia/Melbourne',
+  })
+
+  try {
+    const res = await fetch(
+      `https://archive-api.open-meteo.com/v1/archive?${params}`,
+      { next: { revalidate: 86400 } }
+    )
+    if (!res.ok) return []
+    const data = await res.json()
+    const d = data.daily
+    if (!d?.time) return []
+
+    return d.time.map((date: string, i: number) => ({
+      date,
+      avgTemp: ((d.temperature_2m_max[i] ?? 0) + (d.temperature_2m_min[i] ?? 0)) / 2,
+    }))
+  } catch {
+    return []
+  }
+}
+
+// Get daily avg temps with BOM gap-fill for pre-station planting period
+export async function getDailyAvgTempsWithGapFill(
+  stationId: string,
+  plantedDate: Date,
+  latitude: number | null,
+  longitude: number | null,
+  prisma: any
+): Promise<number[]> {
+  const firstReading = await prisma.weather_readings.findFirst({
+    where: { station_id: stationId, temperature_c: { not: null } },
+    orderBy: { created_at: 'asc' },
+    select: { created_at: true },
+  })
+
+  const stationTemps = await getDailyAvgTemps(stationId, plantedDate, prisma)
+
+  if (!firstReading || !latitude || !longitude) return stationTemps
+
+  const firstReadingDate = new Date(firstReading.created_at)
+  firstReadingDate.setHours(0, 0, 0, 0)
+  const plantedDateMidnight = new Date(plantedDate)
+  plantedDateMidnight.setHours(0, 0, 0, 0)
+
+  if (firstReadingDate <= plantedDateMidnight) return stationTemps
+
+  const gapEndDate = new Date(firstReadingDate)
+  gapEndDate.setDate(gapEndDate.getDate() - 1)
+
+  const startStr = plantedDateMidnight.toLocaleDateString('en-CA')
+  const endStr = gapEndDate.toLocaleDateString('en-CA')
+
+  const bomTemps = await fetchBOMDailyTemps(latitude, longitude, startStr, endStr)
+  const bomAvgTemps = bomTemps.map(t => t.avgTemp)
+
+  return [...bomAvgTemps, ...stationTemps]
+}

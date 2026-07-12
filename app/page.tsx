@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import GddCard from '@/components/GddCard'
 import ETSparkline from '@/components/ETSparkline'
-import { getDailyAvgTemps, getDailyRainWithRate, getRainStats } from '@/lib/gdd'
+import { getDailyAvgTemps, getDailyRainWithRate, getRainStats, getDailyAvgTempsWithGapFill } from '@/lib/gdd'
 import { degreesToCompass, windArrow, rainVariance } from '@/lib/wind'
 import { getDailyET, get7DayET } from '@/lib/et'
 import { assessFieldDampness } from '@/lib/fieldDampness'
@@ -136,7 +136,9 @@ export default async function Dashboard() {
                 const earliestPlanting = [s.planted_date, ...s.zones.map(z => z.planted_date)]
                   .filter((d): d is Date => d != null)
                   .sort((a, b) => a.getTime() - b.getTime())[0]
-                return earliestPlanting ? getDailyAvgTemps(s.id, earliestPlanting, prisma) : Promise.resolve([])
+                return earliestPlanting
+                  ? getDailyAvgTempsWithGapFill(s.id, earliestPlanting, s.latitude ?? null, s.longitude ?? null, prisma)
+                  : Promise.resolve([])
               })(),
               getDailyET(s.id, s.elevation_m ?? null, s.latitude ?? null, prisma),
               get7DayET(s.id, s.elevation_m ?? null, s.latitude ?? null, prisma),
