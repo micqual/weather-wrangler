@@ -22,9 +22,22 @@ export default async function MetricHistory({ params }: { params: Promise<{ id: 
     orderBy: { created_at: 'asc' },
   })
 
-  const points: Point[] = readings
-    .filter(r => (r as any)[m.field] != null && r.created_at != null)
-    .map(r => ({ t: new Date(r.created_at as Date).getTime(), v: m.transform((r as any)[m.field] as number) }))
+  let points: Point[]
+  if (metric === 'rain') {
+    // Convert cumulative rain_mm to per-interval increments
+    const rainReadings = readings.filter(r => r.rain_mm != null && r.created_at != null)
+    points = []
+    for (let i = 1; i < rainReadings.length; i++) {
+      const prev = rainReadings[i - 1].rain_mm as number
+      const curr = rainReadings[i].rain_mm as number
+      const inc = Math.max(0, curr - prev)
+      points.push({ t: new Date(rainReadings[i].created_at as Date).getTime(), v: inc })
+    }
+  } else {
+    points = readings
+      .filter(r => (r as any)[m.field] != null && r.created_at != null)
+      .map(r => ({ t: new Date(r.created_at as Date).getTime(), v: m.transform((r as any)[m.field] as number) }))
+  }
 
   return (
     <div style={{ minHeight: '100vh', padding: '32px 24px', maxWidth: 880, margin: '0 auto' }}>

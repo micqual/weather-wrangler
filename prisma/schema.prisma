@@ -302,6 +302,9 @@ model settings {
   id              Int       @id @default(1)
   n_cost_per_kg_n Decimal?  @default(1.20) @db.Decimal
   updated_at      DateTime? @default(now()) @db.Timestamptz(6)
+  contact_name    String?
+  contact_email   String?
+  contact_phone   String?
 }
 
 model paddock_polygons {

@@ -26,6 +26,8 @@ export default async function PublicStationPage({ params }: { params: Promise<{ 
 
   if (!station) notFound()
 
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } })
+
   const r = station.weather_readings[0]
   const { rainMm: dailyRain } = await getDailyRainWithRate(id, prisma)
   const compass = degreesToCompass(r?.wind_dir_deg ?? null)
@@ -71,7 +73,23 @@ export default async function PublicStationPage({ params }: { params: Promise<{ 
         {station.id}{wsBatV != null ? ` · WS ${wsBatV.toFixed(2)}V` : ''}{nodeBatV != null ? ` · Node ${nodeBatV.toFixed(2)}V` : ''}
       </div>
 
-      <div style={{ marginTop: 40, fontSize: 12, color: '#3f2c57' }}>Weather Wrangler</div>
+      {((settings as any)?.contact_phone || (settings as any)?.contact_email) && (
+        <div style={{ marginTop: 32, padding: '16px 20px', background: '#271b38', border: '1px solid #3f2c57', borderRadius: 12, textAlign: 'center', width: '100%', maxWidth: 360 }}>
+          <div style={{ fontSize: 11, color: '#a896c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Interested in a station?</div>
+          {(settings as any)?.contact_name && <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{(settings as any).contact_name}</div>}
+          {(settings as any)?.contact_phone && (
+            <a href={'tel:' + (settings as any).contact_phone} style={{ display: 'block', fontSize: 18, color: '#f2762a', fontWeight: 700, textDecoration: 'none', marginBottom: 4 }}>
+              {(settings as any).contact_phone}
+            </a>
+          )}
+          {(settings as any)?.contact_email && (
+            <a href={'mailto:' + (settings as any).contact_email} style={{ display: 'block', fontSize: 13, color: '#a896c0', textDecoration: 'none' }}>
+              {(settings as any).contact_email}
+            </a>
+          )}
+        </div>
+      )}
+      <div style={{ marginTop: 24, fontSize: 12, color: '#3f2c57' }}>Weather Wrangler</div>
     </div>
   )
 }
