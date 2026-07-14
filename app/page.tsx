@@ -180,10 +180,10 @@ export default async function Dashboard() {
                 {/* Weather strip */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', margin: '12px 0 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
                   {[
-                    { href: `/station/${s.id}/temp`, value: r?.temperature_c != null ? `${r.temperature_c.toFixed(1)}°` : '—', label: 'Temp' },
-                    { href: `/station/${s.id}/humidity`, value: r?.humidity != null ? `${r.humidity}%` : '—', label: 'Humidity' },
-                    { href: `/station/${s.id}/wind`, value: windKmh ? `${windKmh} km/h` : '—', sub: windKmh ? `${arrow} ${compass}` : '', label: 'Wind' },
-                    { href: `/station/${s.id}/rain`, value: dailyRain != null ? `${dailyRain.toFixed(1)} mm` : '—', sub: variance?.label ?? '', label: 'Today' },
+                    { href: `/station/${s.id}/history?metric=temp`, value: r?.temperature_c != null ? `${r.temperature_c.toFixed(1)}°` : '—', label: 'Temp' },
+                    { href: `/station/${s.id}/history?metric=humidity`, value: r?.humidity != null ? `${r.humidity}%` : '—', label: 'Humidity' },
+                    { href: `/station/${s.id}/history?metric=wind`, value: windKmh ? `${windKmh} km/h` : '—', sub: windKmh ? `${arrow} ${compass}` : '', label: 'Wind' },
+                    { href: `/station/${s.id}/history?metric=rain`, value: dailyRain != null ? `${dailyRain.toFixed(1)} mm` : '—', sub: variance?.label ?? '', label: 'Today' },
                   ].map((cell, i) => (
                     <Link key={i} href={cell.href} style={{ textDecoration: 'none', color: 'inherit', padding: '12px 8px', textAlign: 'center', borderRight: i < 3 ? '1px solid var(--border)' : 'none', display: 'block' }}>
                       <div style={{ fontSize: 18, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cell.value}</div>
