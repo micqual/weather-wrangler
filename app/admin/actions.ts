@@ -209,3 +209,24 @@ export async function assignBorrowedStation(prevState: ActionState, formData: Fo
   revalidatePath('/')
   return { success: borrowed_id ? `${station_id} will now borrow weather data from ${borrowed_id}.` : `${station_id} borrowing removed.` }
 }
+
+export async function updateFarmerSubscription(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const farmer_id = formData.get('farmer_id') as string
+  const tier = formData.get('tier') as string
+  const expires_at = formData.get('expires_at') as string
+  const notes = formData.get('notes') as string
+
+  if (!farmer_id) return { error: 'Select a farmer.' }
+
+  await prisma.farmers.update({
+    where: { id: farmer_id },
+    data: {
+      tier: tier || 'base',
+      subscription_expires_at: expires_at ? new Date(expires_at) : null,
+      subscription_notes: notes || null,
+    },
+  })
+
+  revalidatePath('/admin')
+  return { success: 'Subscription updated.' }
+}

@@ -12,6 +12,9 @@ import { getSprayWindow } from '@/lib/sprayWindow'
 import { getFrostRisk } from '@/lib/frostRisk'
 import { getHeatStress } from '@/lib/heatStress'
 import { assessDiseaseRisk } from '@/lib/diseaseRisk'
+import { getSubscriptionStatus, canAccessFeature } from '@/lib/subscription'
+import SubscriptionBanner from '@/components/SubscriptionBanner'
+import LockedFeature from '@/components/LockedFeature'
 
 const toNum = (v: any): number | null => v == null ? null : parseFloat(String(v))
 
@@ -64,6 +67,16 @@ export default async function Dashboard() {
   if (!session?.user) redirect('/login')
   const isAdmin = (session.user as any).email === 'mdpankhurst@gmail.com'
 
+  const farmer = await prisma.farmers.findUnique({
+    where: { id: (session.user as any).id },
+    select: { tier: true, subscription_expires_at: true },
+  })
+
+  const subStatus = getSubscriptionStatus(
+    farmer?.tier ?? 'base',
+    (farmer as any)?.subscription_expires_at ?? null
+  )
+
   const stations = await prisma.stations.findMany({
     where: { farmer_id: (session.user as any).id },
     include: {
@@ -88,11 +101,26 @@ export default async function Dashboard() {
           <Link href="/methodology" style={{ border: '1px solid var(--text-muted)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Methodology</Link>
           <Link href="/report" style={{ border: '1px solid var(--text-muted)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Report</Link>
           <Link href="/forecast" style={{ border: '1px solid var(--purple)', color: 'var(--purple)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Forecast</Link>
-          <Link href="/agronomy" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Agronomy</Link>
-          <Link href="/nitrogen" style={{ border: '1px solid var(--purple)', color: 'var(--purple)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Nitrogen</Link>
+          {canAccessFeature(subStatus, 'pro') ? (
+            <Link href="/agronomy" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Agronomy</Link>
+          ) : (
+            <span style={{ border: '1px solid var(--border)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'default' }} title="Requires Pro plan — contact info@weatherwrangler.net">Agronomy 🔒</span>
+          )}
+          {canAccessFeature(subStatus, 'pro') ? (
+            <Link href="/nitrogen" style={{ border: '1px solid var(--purple)', color: 'var(--purple)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Nitrogen</Link>
+          ) : (
+            <span style={{ border: '1px solid var(--border)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'default' }} title="Requires Pro plan — contact info@weatherwrangler.net">Nitrogen 🔒</span>
+          )}
           {isAdmin && <Link href="/admin" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Admin</Link>}
         </div>
       </div>
+
+      <SubscriptionBanner
+        daysUntilExpiry={subStatus.daysUntilExpiry}
+        daysOverdue={subStatus.daysOverdue}
+        isGrace={subStatus.isGrace}
+        tier={subStatus.tier}
+      />
 
       {stations.length === 0 ? (
         <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No paddocks assigned yet.</div>

@@ -56,20 +56,22 @@ model crop_types {
 }
 
 model farmers {
-  id                    String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                  String?
-  email                 String?    @unique
-  password_hash         String?
-  created_at            DateTime?  @default(now()) @db.Timestamptz(6)
-  tier                  String?    @default("base")
-  active                Boolean?   @default(true)
-  agronomist_name       String?
-  agronomist_company    String?
-  agronomist_phone      String?
-  grain_price_per_tonne Decimal?   @default(280) @db.Decimal
-  n_cost_per_kg_n       Decimal?   @default(1.20) @db.Decimal
-  farms                 farms[]
-  stations              stations[]
+  id                      String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                    String?
+  email                   String?    @unique
+  password_hash           String?
+  created_at              DateTime?  @default(now()) @db.Timestamptz(6)
+  tier                    String?    @default("base")
+  active                  Boolean?   @default(true)
+  agronomist_name         String?
+  agronomist_company      String?
+  agronomist_phone        String?
+  grain_price_per_tonne   Decimal?   @default(280) @db.Decimal
+  n_cost_per_kg_n         Decimal?   @default(1.20) @db.Decimal
+  subscription_expires_at DateTime?  @db.Timestamptz(6)
+  subscription_notes      String?
+  farms                   farms[]
+  stations                stations[]
 }
 
 model growth_stage_thresholds {

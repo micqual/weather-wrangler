@@ -7,6 +7,7 @@ import ReplaceStationForm from './ReplaceStationForm'
 import ResetPasswordForm from './ResetPasswordForm'
 import EditStationForm from './EditStationForm'
 import BorrowStationForm from './BorrowStationForm'
+import FarmerSubscriptionForm from './FarmerSubscriptionForm'
 import SettingsForm from './SettingsForm'
 import Link from 'next/link'
 
@@ -131,6 +132,19 @@ export default async function AdminPage() {
           <h3 style={titleStyle}>8. Borrow weather data</h3>
           <p style={hintStyle}>Let a paddock use a nearby station's readings (max 5 km).</p>
           <BorrowStationForm stations={stations} />
+        </div>
+
+        <div className="card" style={{ padding: 20 }}>
+          <h3 style={titleStyle}>Farmer subscriptions</h3>
+          <p style={hintStyle}>Set tier (Base/Mid/Pro), expiry date and payment notes.</p>
+          <FarmerSubscriptionForm farmers={farmers.map(f => ({
+            id: f.id,
+            name: f.name,
+            email: f.email,
+            tier: f.tier,
+            subscription_expires_at: (f as any).subscription_expires_at ?? null,
+            subscription_notes: (f as any).subscription_notes ?? null,
+          }))} />
         </div>
 
         <div className="card" style={{ padding: 20 }}>
