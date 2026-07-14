@@ -7,7 +7,7 @@ import { updateFarmerSubscription } from './actions'
 type Farmer = {
   id: string
   name: string | null
-  email: string
+  email: string | null
   tier: string | null
   subscription_expires_at?: Date | null
   subscription_notes?: string | null
