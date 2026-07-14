@@ -10,10 +10,8 @@ import BorrowStationForm from './BorrowStationForm'
 import SettingsForm from './SettingsForm'
 import FarmerSubscriptionForm from './FarmerSubscriptionForm'
 import AdminTabs from './AdminTabs'
+import CollapsibleCard from '@/components/CollapsibleCard'
 import Link from 'next/link'
-
-const titleStyle = { margin: '0 0 4px', fontSize: 15, fontWeight: 600 }
-const hintStyle = { margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }
 
 export default async function AdminPage() {
   const session = await auth()
@@ -30,12 +28,7 @@ export default async function AdminPage() {
     prisma.crop_types.findMany({ orderBy: { id: 'asc' } }),
     prisma.settings.findUnique({ where: { id: 1 } }),
     prisma.farmers.findMany({
-      where: {
-        subscription_expires_at: {
-          gte: twoWeeksAgo,
-          lte: thirtyDaysFromNow,
-        },
-      },
+      where: { subscription_expires_at: { gte: twoWeeksAgo, lte: thirtyDaysFromNow } },
       orderBy: { subscription_expires_at: 'asc' },
     }),
   ])
@@ -44,19 +37,16 @@ export default async function AdminPage() {
   const assigned = stations.filter(s => s.farm_id)
   const cropById = new Map(cropTypes.map(c => [c.id, c]))
   const stationsWithGps = stations.filter(s => s.latitude && s.longitude).length
-
   const safeFarmers = farmers.map(f => ({ id: f.id, name: f.name, email: f.email }))
   const safeFarms = farms.map(f => ({ ...f, farmers: { name: f.farmers.name } }))
   const safeCropTypes = cropTypes.map(c => ({
-    id: c.id,
-    crop_name: c.crop_name,
-    variety: c.variety,
+    id: c.id, crop_name: c.crop_name, variety: c.variety,
     grain_price_per_tonne: c.grain_price_per_tonne != null ? parseFloat(String(c.grain_price_per_tonne)) : null,
   }))
 
   return (
     <div style={{ minHeight: '100vh', padding: '32px 24px', maxWidth: 960, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>
             <span style={{ color: 'var(--orange)' }}>Admin</span>
@@ -72,10 +62,10 @@ export default async function AdminPage() {
         )}
       </div>
 
-      {/* Expiring subscriptions warning */}
+      {/* Expiring subscriptions */}
       {expiringFarmers.length > 0 && (
         <div className="card" style={{ padding: 20, marginBottom: 20, border: '1px solid rgba(250,204,21,0.4)' }}>
-          <h3 style={{ ...titleStyle, color: '#facc15', marginBottom: 12 }}>⚠️ Subscriptions expiring soon</h3>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#facc15', marginBottom: 12 }}>⚠️ Subscriptions expiring soon</div>
           {expiringFarmers.map(f => {
             const expiry = new Date((f as any).subscription_expires_at)
             const daysLeft = Math.ceil((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -87,7 +77,7 @@ export default async function AdminPage() {
                   <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>{f.tier ?? 'base'}</span>
                   {(f as any).subscription_notes && <span style={{ color: 'var(--text-muted)', marginLeft: 8, fontSize: 11 }}>· {(f as any).subscription_notes}</span>}
                 </div>
-                <div style={{ color: isOverdue ? '#ef4444' : daysLeft <= 7 ? '#f97316' : '#facc15', fontWeight: 600, whiteSpace: 'nowrap', marginLeft: 16 }}>
+                <div style={{ color: isOverdue ? '#ef4444' : daysLeft <= 7 ? '#f97316' : '#facc15', fontWeight: 600 }}>
                   {isOverdue ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Expires today' : `${daysLeft}d left`}
                 </div>
               </div>
@@ -97,11 +87,9 @@ export default async function AdminPage() {
       )}
 
       <AdminTabs>
-        {/* Tab 1 — Setup */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-          <div className="card" style={{ padding: 20 }}>
-            <h3 style={titleStyle}>Register a station</h3>
-            <p style={hintStyle}>Device ID, WS90 serial number, and GPS coordinates.</p>
+        {/* ── SETUP TAB ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <CollapsibleCard title="Register a station" hint="Device ID, WS90 serial number, and GPS coordinates.">
             <form action={createStation}>
               <input className="input" name="id" placeholder="Station ID (e.g. node_3)" required style={{ marginBottom: 10 }} />
               <input className="input" name="ws90_serial" placeholder="WS90 serial number (optional)" style={{ marginBottom: 10 }} />
@@ -111,39 +99,29 @@ export default async function AdminPage() {
               </div>
               <button className="btn-primary" type="submit">Register station</button>
             </form>
-            <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text-muted)' }}>
+            <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-muted)' }}>
               {unassigned.length} unassigned: {unassigned.map(s => s.id).join(', ') || '—'}
             </div>
-          </div>
+          </CollapsibleCard>
 
-          <div className="card" style={{ padding: 20 }}>
-            <h3 style={titleStyle}>Edit a station</h3>
-            <p style={hintStyle}>Update paddock name, serial number, GPS, or elevation.</p>
+          <CollapsibleCard title="Edit a station" hint="Update paddock name, serial number, GPS, or elevation.">
             <EditStationForm stations={stations} />
-          </div>
+          </CollapsibleCard>
 
-          <div className="card" style={{ padding: 20 }}>
-            <h3 style={titleStyle}>Add a paddock</h3>
-            <p style={hintStyle}>Links a registered station to a farm.</p>
+          <CollapsibleCard title="Add a paddock" hint="Links a registered station to a farm.">
             <PaddockForm stations={stations} farms={safeFarms} />
-          </div>
+          </CollapsibleCard>
 
-          <div className="card" style={{ padding: 20 }}>
-            <h3 style={titleStyle}>Replace a station</h3>
-            <p style={hintStyle}>Stolen or broken — moves the paddock to a new device.</p>
+          <CollapsibleCard title="Replace a station" hint="Stolen or broken — moves the paddock to a new device.">
             <ReplaceStationForm assigned={assigned} unassigned={unassigned} />
-          </div>
+          </CollapsibleCard>
 
-          <div className="card" style={{ padding: 20 }}>
-            <h3 style={titleStyle}>Borrow weather data</h3>
-            <p style={hintStyle}>Let a paddock use a nearby station's readings (max 5 km).</p>
+          <CollapsibleCard title="Borrow weather data" hint="Let a paddock use a nearby station's readings (max 5 km).">
             <BorrowStationForm stations={stations} />
-          </div>
+          </CollapsibleCard>
 
-          {/* All farms & paddocks */}
-          <div className="card" style={{ padding: 20, gridColumn: '1 / -1' }}>
-            <h3 style={{ ...titleStyle, marginBottom: 12 }}>All farms &amp; paddocks</h3>
-            {farms.length === 0 && <p style={hintStyle}>No farms yet.</p>}
+          <CollapsibleCard title="All farms & paddocks" defaultOpen={true}>
+            {farms.length === 0 && <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No farms yet.</p>}
             {farms.map(f => (
               <div key={f.id} style={{ borderTop: '1px solid var(--border)', paddingTop: 10, marginTop: 10 }}>
                 <div style={{ fontWeight: 600 }}>{f.name} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>· {f.farmers.name}</span></div>
@@ -165,23 +143,21 @@ export default async function AdminPage() {
                 )}
               </div>
             ))}
-          </div>
+          </CollapsibleCard>
         </div>
 
-        {/* Tab 2 — Farmers */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-          <div className="card" style={{ padding: 20 }}>
-            <h3 style={titleStyle}>Create a farmer login</h3>
+        {/* ── FARMERS TAB ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <CollapsibleCard title="Create a farmer login">
             <form action={createFarmer}>
               <input className="input" name="name" placeholder="Farmer name" required style={{ marginBottom: 10 }} />
               <input className="input" name="email" type="email" placeholder="Email" required style={{ marginBottom: 10 }} />
               <input className="input" name="password" type="password" placeholder="Password" required style={{ marginBottom: 10 }} />
               <button className="btn-primary" type="submit">Create login</button>
             </form>
-          </div>
+          </CollapsibleCard>
 
-          <div className="card" style={{ padding: 20 }}>
-            <h3 style={titleStyle}>Create a farm</h3>
+          <CollapsibleCard title="Create a farm">
             <form action={createFarm}>
               <select className="input" name="farmer_id" required style={{ marginBottom: 10 }}>
                 <option value="">Select farmer…</option>
@@ -193,38 +169,29 @@ export default async function AdminPage() {
               <input className="input" name="address" placeholder="Address (optional)" style={{ marginBottom: 10 }} />
               <button className="btn-primary" type="submit">Create farm</button>
             </form>
-          </div>
+          </CollapsibleCard>
 
-          <div className="card" style={{ padding: 20 }}>
-            <h3 style={titleStyle}>Farmer subscriptions</h3>
-            <p style={hintStyle}>Set tier (Base/Mid/Pro), expiry date and payment notes.</p>
+          <CollapsibleCard title="Farmer subscriptions" hint="Set tier (Base/Mid/Pro), expiry date and payment notes." defaultOpen={true}>
             <FarmerSubscriptionForm farmers={farmers.map(f => ({
-              id: f.id,
-              name: f.name,
-              email: f.email,
-              tier: f.tier,
+              id: f.id, name: f.name, email: f.email, tier: f.tier,
               subscription_expires_at: (f as any).subscription_expires_at ?? null,
               subscription_notes: (f as any).subscription_notes ?? null,
             }))} />
-          </div>
+          </CollapsibleCard>
 
-          <div className="card" style={{ padding: 20 }}>
-            <h3 style={titleStyle}>Reset a farmer's password</h3>
-            <p style={hintStyle}>Sets a new password directly — shown once after saving.</p>
+          <CollapsibleCard title="Reset a farmer's password" hint="Sets a new password — shown once after saving.">
             <ResetPasswordForm farmers={safeFarmers} />
-          </div>
+          </CollapsibleCard>
         </div>
 
-        {/* Tab 3 — Prices */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-          <div className="card" style={{ padding: 20 }}>
-            <h3 style={titleStyle}>Market prices</h3>
-            <p style={hintStyle}>Update grain prices and fertiliser cost for economic N optimum calculations.</p>
+        {/* ── PRICES TAB ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <CollapsibleCard title="Market prices" hint="Grain prices and fertiliser cost for economic N optimum." defaultOpen={true}>
             <SettingsForm
               nCost={settings ? parseFloat(String(settings.n_cost_per_kg_n)) : 1.20}
               cropTypes={safeCropTypes}
             />
-          </div>
+          </CollapsibleCard>
         </div>
       </AdminTabs>
     </div>
