@@ -17,7 +17,7 @@ function HistoryChart({
   color: string
   fmt: (v: number) => string
   barChart?: boolean
-  chartRef?: React.RefObject<HTMLDivElement>
+  chartRef?: React.RefObject<HTMLDivElement | null>
 }) {
   const chart = useMemo(() => {
     if (points.length < 2) return null
@@ -105,7 +105,7 @@ export default function HistoryCharts({
 
   useEffect(() => {
     if (!scrollTo) return
-    const refs: Record<string, React.RefObject<HTMLDivElement>> = {
+    const refs: Record<string, React.RefObject<HTMLDivElement | null>> = {
       temp: tempRef,
       humidity: humidityRef,
       wind: windRef,
