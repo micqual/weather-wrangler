@@ -19,12 +19,24 @@ export default async function AdminPage() {
   if (!session?.user) redirect('/login')
   if ((session.user as any).email !== 'mdpankhurst@gmail.com') redirect('/')
 
-  const [stations, farmers, farms, cropTypes, settings] = await Promise.all([
+  const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
+
+  const [stations, farmers, farms, cropTypes, settings, expiringFarmers] = await Promise.all([
     prisma.stations.findMany({ orderBy: { created_at: 'desc' } }),
     prisma.farmers.findMany({ orderBy: { created_at: 'desc' } }),
     prisma.farms.findMany({ include: { farmers: true }, orderBy: { created_at: 'desc' } }),
     prisma.crop_types.findMany({ orderBy: { id: 'asc' } }),
     prisma.settings.findUnique({ where: { id: 1 } }),
+    prisma.farmers.findMany({
+      where: {
+        subscription_expires_at: {
+          gte: twoWeeksAgo,
+          lte: thirtyDaysFromNow,
+        },
+      },
+      orderBy: { subscription_expires_at: 'asc' },
+    }),
   ])
 
   const unassigned = stations.filter(s => !s.farm_id)
@@ -57,6 +69,29 @@ export default async function AdminPage() {
           </Link>
         )}
       </div>
+
+      {expiringFarmers.length > 0 && (
+        <div className="card" style={{ padding: 20, marginBottom: 20, border: '1px solid rgba(250,204,21,0.4)' }}>
+          <h3 style={{ ...titleStyle, color: '#facc15', marginBottom: 12 }}>⚠️ Subscriptions expiring soon</h3>
+          {expiringFarmers.map(f => {
+            const expiry = new Date((f as any).subscription_expires_at)
+            const daysLeft = Math.ceil((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+            const isOverdue = daysLeft < 0
+            return (
+              <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
+                <div>
+                  <span style={{ fontWeight: 600 }}>{f.name ?? f.email}</span>
+                  <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>{f.tier ?? 'base'}</span>
+                  {(f as any).subscription_notes && <span style={{ color: 'var(--text-muted)', marginLeft: 8, fontSize: 11 }}>· {(f as any).subscription_notes}</span>}
+                </div>
+                <div style={{ color: isOverdue ? '#ef4444' : daysLeft <= 7 ? '#f97316' : '#facc15', fontWeight: 600, whiteSpace: 'nowrap', marginLeft: 16 }}>
+                  {isOverdue ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Expires today' : `${daysLeft}d left`}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
         <div className="card" style={{ padding: 20 }}>
@@ -152,6 +187,8 @@ export default async function AdminPage() {
           <p style={hintStyle}>Sets a new password directly — shown once after saving.</p>
           <ResetPasswordForm farmers={safeFarmers} />
         </div>
+      </div>
+
       </div>
 
       <div style={{ marginTop: 32 }}>
