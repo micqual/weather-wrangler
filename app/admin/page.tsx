@@ -189,8 +189,6 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      </div>
-
       <div style={{ marginTop: 32 }}>
         <h3 style={titleStyle}>All farms &amp; paddocks</h3>
         {farms.length === 0 && <p style={hintStyle}>No farms yet.</p>}
