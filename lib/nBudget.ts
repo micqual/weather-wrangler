@@ -2,6 +2,8 @@ import { estimateNLosses } from './volatilization'
 
 export type NBudget = {
   soilN: number
+  soilTestN: number
+  ocN: number
   appliedNRetained: number
   totalAvailable: number
   targetN: number | null
