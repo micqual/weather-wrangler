@@ -58,7 +58,8 @@ export default async function NitrogenPage() {
       appsWithWeather.filter(a => !(a as any).zone_id),
       s.soil_type ?? null,
       s.target_yield_t_ha ?? null,
-      nReq
+      nReq,
+      organicCarbon
     )
 
     const yieldResult = calcYieldPotential(

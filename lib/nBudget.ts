@@ -29,9 +29,14 @@ export function calcNBudget(
   const nReq = nReqKgPerTonne != null ? parseFloat(String(nReqKgPerTonne)) : null
 
   const latestTest = soilTests[0]
-  const soilN = latestTest
+  const soilTestN = latestTest
     ? (latestTest.no3_n_kg_ha ?? 0) + (latestTest.nh4_n_kg_ha ?? 0)
     : 0
+
+  // N mineralisation from organic carbon (GRDC rule of thumb: OC% × 20 kg N/ha)
+  const ocN = organicCarbonPct != null ? organicCarbonPct * 20 : 0
+
+  const soilN = soilTestN + ocN
 
   const appliedNRetained = applications.reduce((sum, a) => {
     const losses = estimateNLosses(
@@ -56,7 +61,7 @@ export function calcNBudget(
   const pctOfTarget = targetN ? Math.min(100, Math.round((totalAvailable / targetN) * 100)) : null
   const gapKgNHa = targetN ? Math.max(0, targetN - totalAvailable) : null
 
-  return { soilN, appliedNRetained, totalAvailable, targetN, yieldTarget: targetYieldTHa, pctOfTarget, gapKgNHa }
+  return { soilN, soilTestN, ocN, appliedNRetained, totalAvailable, targetN, yieldTarget: targetYieldTHa, pctOfTarget, gapKgNHa }
 }
 
 export type NChartPoint = {

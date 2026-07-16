@@ -65,7 +65,8 @@ export default async function AgronomyPage() {
       appsWithWeather.filter(a => !(a as any).zone_id),
       s.soil_type ?? null,
       s.target_yield_t_ha ?? null,
-      nReq
+      nReq,
+      organicCarbon
     )
 
     const yieldResult = calcYieldPotential(
@@ -269,7 +270,8 @@ export default async function AgronomyPage() {
 
           {/* Key numbers */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 20 }}>
-            <Metric label="Estimated soil N" value={`${nBudget.soilN.toFixed(0)} kg N/ha`} color="var(--text-muted)" />
+            <Metric label="Soil test N" value={`${(nBudget as any).soilTestN?.toFixed(0) ?? nBudget.soilN.toFixed(0)} kg N/ha`} color="var(--text-muted)" />
+            {(nBudget as any).ocN > 0 && <Metric label="OC mineralisation" value={`${(nBudget as any).ocN.toFixed(0)} kg N/ha`} color="var(--text-muted)" />}
             <Metric label="N applied at sowing" value={`${preSowingN.toFixed(0)} kg N/ha`} color="var(--orange)" />
             <Metric label="N applied after sowing" value={`${postSowingN.toFixed(0)} kg N/ha`} color="var(--orange)" />
             <Metric label="Total available N" value={`${nBudget.totalAvailable.toFixed(0)} kg N/ha`} color="var(--purple)" />

@@ -109,7 +109,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
         return { ...a, ...weather, losses }
       })
     )
-    const nBudget = calcNBudget(soilTests, appsWithWeather, s.soil_type ?? null, s.target_yield_t_ha ?? null, nReq)
+    const organicCarbonPct = (s as any).organic_carbon_pct ? parseFloat(String((s as any).organic_carbon_pct)) : null
+    const nBudget = calcNBudget(soilTests, appsWithWeather, s.soil_type ?? null, s.target_yield_t_ha ?? null, nReq, organicCarbonPct)
 
     // This month's N applications
     const monthApps = applications.filter(a => {
