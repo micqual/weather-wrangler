@@ -346,11 +346,12 @@ export default async function AgronomyPage() {
         </div>
       ))}
 
-      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-        Yield curve uses the Mitscherlich equation Y = A(1 - e^(-c(x+b))).
-        Maximum yield (A) from French-Schultz water-use efficiency framework.
-        Efficiency constant (c) is a default — calibrate with local trial data for best accuracy.
-      </p>
+      <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.15)', borderRadius: 10, border: '1px solid var(--border)', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>Methodology</div>
+        Water-limited yield uses the Sadras & Angus (2006) update of the French-Schultz formula: Y = (Stored soil water + Growing season rainfall − 60mm evaporation) × WUE. Yield response to nitrogen uses the Mitscherlich equation Y = A(1 − e^(−c(x+b))). N mineralisation estimated as OC% × 20 kg N/ha.
+        These calculations are equivalent to the Yield Prophet® Lite methodology (Birchip Cropping Group / CSIRO). For probabilistic yield forecasts using full APSIM simulation, visit <a href="https://www.yieldprophet.com.au" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--orange)' }}>yieldprophet.com.au</a>.
+        Results are indicative only — not a substitute for professional agronomic advice.
+      </div>
     </div>
   )
 }

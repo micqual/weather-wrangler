@@ -239,10 +239,13 @@ export default async function NitrogenPage() {
         </div>
       ))}
 
-      <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-        N budget = latest soil test N + retained applied N (after estimated volatilization and leaching losses).
-        Yield potential uses Sadras & Angus (2006) / French-Schultz framework. Losses are estimates — not a substitute for professional advice.
-      </p>
+      <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid var(--border)', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>Methodology</div>
+        N budget = soil test N (NO₃ + NH₄) + OC mineralisation (OC% × 20) + retained applied N (after estimated volatilization and leaching losses).
+        Yield potential uses the Sadras & Angus (2006) / French-Schultz framework — equivalent to Yield Prophet® Lite methodology.
+        Volatilization and leaching losses are modelled estimates. For full probabilistic APSIM simulation visit <a href="https://www.yieldprophet.com.au" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--orange)' }}>yieldprophet.com.au</a>.
+        Not a substitute for professional agronomic advice.
+      </div>
     </div>
   )
 }
