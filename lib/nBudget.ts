@@ -23,7 +23,8 @@ export function calcNBudget(
   }[],
   soilType: string | null,
   targetYieldTHa: number | null,
-  nReqKgPerTonne: number | null | any
+  nReqKgPerTonne: number | null | any,
+  organicCarbonPct: number | null = null
 ): NBudget {
   // Convert Decimal to number if needed
   const nReq = nReqKgPerTonne != null ? parseFloat(String(nReqKgPerTonne)) : null
