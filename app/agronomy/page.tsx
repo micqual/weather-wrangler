@@ -144,16 +144,40 @@ export default async function AgronomyPage() {
         totalFallowMm += rain
       }
 
-      // Growing season months
+      // Growing season months — use WS90 where available, BOM otherwise
+      // Get WS90 monthly rain from station readings
+      const ws90Readings = await prisma.weather_readings.findMany({
+        where: { station_id: s.id, created_at: { gte: plantedDate }, rain_mm: { not: null } },
+        orderBy: { created_at: 'asc' },
+        select: { created_at: true, rain_mm: true },
+      })
+
+      // Calculate monthly rain totals from WS90
+      const ws90ByMonth = new Map<string, number>()
+      for (let i = 1; i < ws90Readings.length; i++) {
+        const prev = ws90Readings[i - 1].rain_mm as number
+        const curr = ws90Readings[i].rain_mm as number
+        const inc = Math.max(0, curr - prev)
+        const key = new Date(ws90Readings[i].created_at!).toLocaleDateString('en-CA', { timeZone: 'Australia/Melbourne' }).substring(0, 7)
+        ws90ByMonth.set(key, (ws90ByMonth.get(key) ?? 0) + inc)
+      }
+
+      // BOM growing season by month
       const growingByMonth = new Map<string, number>()
       for (const d of growingData) {
         const key = d.date.substring(0, 7)
         growingByMonth.set(key, (growingByMonth.get(key) ?? 0) + (d.precipitation ?? 0))
       }
-      for (const [key, rain] of Array.from(growingByMonth.entries()).sort()) {
+
+      // Merge — prefer WS90 where available
+      const allGrowingMonths = new Set([...Array.from(growingByMonth.keys()), ...Array.from(ws90ByMonth.keys())])
+      for (const key of Array.from(allGrowingMonths).sort()) {
         const [y, m] = key.split('-').map(Number)
         const label = new Date(y, m - 1, 1).toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })
-        rainfallMonths.push({ month: m, year: y, label, rainfallMm: Math.round(rain * 10) / 10, source: 'bom-historical', efficiency: 80, period: 'growing' })
+        const hasWS90 = ws90ByMonth.has(key)
+        const rain = hasWS90 ? ws90ByMonth.get(key)! : (growingByMonth.get(key) ?? 0)
+        const source = hasWS90 ? 'station' : 'bom-historical'
+        rainfallMonths.push({ month: m, year: y, label, rainfallMm: Math.round(rain * 10) / 10, source, efficiency: 80, period: 'growing' })
         totalGrowingMm += rain
       }
 

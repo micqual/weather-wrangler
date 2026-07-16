@@ -50,7 +50,7 @@ export default function RainfallBudget({
   }
 
   const sourceLabel = (s: string) => {
-    if (s === 'station') return 'WS90'
+    if (s === 'station') return 'WW'
     if (s === 'bom-historical') return 'BOM'
     if (s === 'bom-forecast') return '7d fcst'
     return 'avg'

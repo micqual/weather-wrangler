@@ -15,16 +15,7 @@ export default function DecileYieldChart({ bars }: { bars: DecileBar[] }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 16, fontSize: 12, marginBottom: 12 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 12, height: 12, background: '#166534', display: 'inline-block', borderRadius: 2 }} />
-          Yield with unlimited N
-        </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 12, height: 12, background: '#4ade80', display: 'inline-block', borderRadius: 2 }} />
-          Yield with current N
-        </span>
-      </div>
+
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 220, padding: '0 8px' }}>
         {bars.map((bar, i) => {
@@ -47,7 +38,7 @@ export default function DecileYieldChart({ bars }: { bars: DecileBar[] }) {
                   bottom: 0,
                   width: '100%',
                   height: waterHeight,
-                  background: '#166534',
+                  background: '#92400e',
                   borderRadius: '4px 4px 0 0',
                 }} />
                 {/* N-limited bar (light) */}
@@ -56,7 +47,7 @@ export default function DecileYieldChart({ bars }: { bars: DecileBar[] }) {
                   bottom: 0,
                   width: '100%',
                   height: nHeight,
-                  background: '#4ade80',
+                  background: '#f2762a',
                   borderRadius: '4px 4px 0 0',
                 }} />
                 {/* Yield label */}
@@ -88,9 +79,18 @@ export default function DecileYieldChart({ bars }: { bars: DecileBar[] }) {
         })}
       </div>
 
-      {/* Y axis label */}
       <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>
         Yield potential (t/ha) across growing season rainfall scenarios
+      </div>
+      <div style={{ display: 'flex', gap: 16, fontSize: 12, marginTop: 12, justifyContent: 'center' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 12, height: 12, background: '#92400e', display: 'inline-block', borderRadius: 2 }} />
+          Yield with unlimited N
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 12, height: 12, background: '#f2762a', display: 'inline-block', borderRadius: 2 }} />
+          Yield with current N
+        </span>
       </div>
     </div>
   )
