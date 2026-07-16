@@ -61,7 +61,10 @@ export default function MethodologyPage() {
 
       <Section title="🧪 Nitrogen Budget">
         <Item title="N Budget">
-          Total available N = soil N (from latest soil test, NO₃ + NH₄) + retained applied N (after losses). Does not account for mineralisation of organic N, which can be significant in high-organic-carbon soils.
+          Total available N = soil test N (NO₃ + NH₄) + OC mineralisation + retained applied N (after losses). N applications are split by planting date: applications on or before planting date = N at sowing; applications after planting date = N post-sowing. This matches the Yield Prophet® Lite input format.
+        </Item>
+        <Item title="N Mineralisation from Organic Carbon">
+          Estimated plant-available N from soil organic matter mineralisation during the growing season. Formula: OC% × 20 kg N/ha. This is a practical rule of thumb consistent with GRDC extension guidelines for southern Australia. Actual mineralisation depends on soil temperature, moisture, and microbial activity — this estimate assumes average in-season conditions. For high OC soils (&gt;2%), consider a more detailed assessment.
         </Item>
         <Item title="Nitrogen Volatilization Loss">
           Estimated using a practical extension model consistent with the key factors in the APSIM volatilization model. Key factors: product type (urea-based products only), incorporation status, temperature, humidity, and days to rain after application. Incorporated urea: ~2% loss. Surface-applied urea: 5–40% depending on conditions, with rain within 24 hours reducing loss significantly. This is an estimate — the full APSIM mechanistic model requires soil CEC and pH inputs not available from a weather station.
@@ -76,7 +79,7 @@ export default function MethodologyPage() {
 
       <Section title="📈 Yield Potential">
         <Item title="Water-Limited Yield (French-Schultz / Sadras-Angus)">
-          Y = (Stored Soil Water + Growing Season Rainfall − Evaporation Coefficient) × WUE. Evaporation coefficient = 110 mm (opening rainfall lost to evaporation). WUE (Water Use Efficiency) default = 17 kg grain/mm water, set per crop type. Based on French and Schultz (1984) as extended by Sadras and Angus (2006). This framework is widely used in Australian dryland agronomy and underpins Yield Prophet Lite.
+          Y = (Stored Soil Water + Growing Season Rainfall − 60mm evaporation) × WUE. Evaporation coefficient updated from the original 110mm (French &amp; Schultz 1984) to 60mm for southern Australia based on modern varieties and management practices (Harries et al. 2022, Sadras &amp; Angus 2006). WUE = 20 kg grain/mm for modern wheat varieties, 22 kg/mm for barley — set per crop type in the system. This framework is equivalent to the Yield Prophet® Lite methodology (Birchip Cropping Group / CSIRO).
         </Item>
         <Item title="Nitrogen-Limited Yield">
           Y = Total Available N ÷ N requirement per tonne. Capped at water-limited yield when both are available. N requirement default = 40 kg N/tonne (wheat/barley).
