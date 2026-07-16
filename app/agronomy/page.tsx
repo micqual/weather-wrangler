@@ -76,9 +76,18 @@ export default async function AgronomyPage() {
     )
 
     const maxYield = yieldResult.waterLimitedTHa ?? s.target_yield_t_ha ?? 4
-    const currentAppliedN = appsWithWeather
-      .filter(a => !(a as any).zone_id)
+    const paddockApps = appsWithWeather.filter(a => !(a as any).zone_id)
+    const plantedDate = s.planted_date ? new Date(s.planted_date) : null
+
+    const preSowingN = paddockApps
+      .filter(a => plantedDate == null || new Date(a.applied_at) <= plantedDate)
       .reduce((sum, a) => sum + (a.losses?.retainedKgNHa ?? a.n_kg_ha), 0)
+
+    const postSowingN = paddockApps
+      .filter(a => plantedDate != null && new Date(a.applied_at) > plantedDate)
+      .reduce((sum, a) => sum + (a.losses?.retainedKgNHa ?? a.n_kg_ha), 0)
+
+    const currentAppliedN = preSowingN + postSowingN
 
     const curve = calcMitscherlich(
       maxYield,
@@ -218,7 +227,7 @@ export default async function AgronomyPage() {
       })
     }
 
-    return { station: s, safeCropType, nBudget, yieldResult, curve, currentAppliedN, zones, grainPrice, rainfallMonths, totalFallowMm, totalGrowingMm, totalRemainingMm, decileBars }
+    return { station: s, safeCropType, nBudget, yieldResult, curve, currentAppliedN, preSowingN, postSowingN, zones, grainPrice, rainfallMonths, totalFallowMm, totalGrowingMm, totalRemainingMm, decileBars }
   }))
 
   return (
@@ -235,7 +244,7 @@ export default async function AgronomyPage() {
         <Link href="/" style={{ color: 'var(--text-muted)', fontSize: 14, textDecoration: 'none' }}>← My Paddocks</Link>
       </div>
 
-      {stationData.map(({ station, safeCropType, nBudget, yieldResult, curve, currentAppliedN, grainPrice, rainfallMonths, totalFallowMm, totalGrowingMm, totalRemainingMm, decileBars }) => (
+      {stationData.map(({ station, safeCropType, nBudget, yieldResult, curve, currentAppliedN, preSowingN, postSowingN, grainPrice, rainfallMonths, totalFallowMm, totalGrowingMm, totalRemainingMm, decileBars }) => (
         <div key={station.id} className="card" style={{ padding: 24, marginBottom: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
             <div>
@@ -260,13 +269,14 @@ export default async function AgronomyPage() {
 
           {/* Key numbers */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 20 }}>
-            <Metric label="Soil N" value={`${nBudget.soilN.toFixed(0)} kg/ha`} color="var(--text-muted)" />
-            <Metric label="Applied N (retained)" value={`${currentAppliedN.toFixed(0)} kg/ha`} color="var(--orange)" />
-            <Metric label="Total available N" value={`${nBudget.totalAvailable.toFixed(0)} kg/ha`} color="var(--purple)" />
-            <Metric label="Max yield (water)" value={yieldResult.waterLimitedTHa ? `${yieldResult.waterLimitedTHa.toFixed(1)} t/ha` : '—'} color="#60a5fa" />
-            <Metric label="Current predicted" value={curve.currentYield ? `${curve.currentYield.toFixed(2)} t/ha` : '—'} color="#4ade80" />
-            {curve.optimalN != null && <Metric label="95% optimal N" value={`${curve.optimalN} kg/ha`} color="var(--purple)" />}
-            {curve.economicOptimalN != null && <Metric label="Economic optimum" value={`${curve.economicOptimalN} kg/ha`} color="var(--amber)" />}
+            <Metric label="Estimated soil N" value={`${nBudget.soilN.toFixed(0)} kg N/ha`} color="var(--text-muted)" />
+            <Metric label="N applied at sowing" value={`${preSowingN.toFixed(0)} kg N/ha`} color="var(--orange)" />
+            <Metric label="N applied after sowing" value={`${postSowingN.toFixed(0)} kg N/ha`} color="var(--orange)" />
+            <Metric label="Total available N" value={`${nBudget.totalAvailable.toFixed(0)} kg N/ha`} color="var(--purple)" />
+            <Metric label="Water-limited yield" value={yieldResult.waterLimitedTHa ? `${yieldResult.waterLimitedTHa.toFixed(1)} t/ha` : '—'} color="#60a5fa" />
+            <Metric label="N-limited yield" value={curve.currentYield ? `${curve.currentYield.toFixed(2)} t/ha` : '—'} color="#4ade80" />
+            {curve.optimalN != null && <Metric label="95% optimal N" value={`${curve.optimalN} kg N/ha`} color="var(--purple)" />}
+            {curve.economicOptimalN != null && <Metric label="Economic optimum" value={`${curve.economicOptimalN} kg N/ha`} color="var(--amber)" />}
           </div>
 
           {/* Yield curve chart */}
