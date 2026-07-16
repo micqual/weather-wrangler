@@ -183,3 +183,104 @@ export function weatherCodeLabel(code: number | null): string {
   if (code <= 99) return 'Thunderstorm'
   return '—'
 }
+
+// Fetch 30-year monthly rainfall averages using Open-Meteo archive
+// Used for future month estimates in the growing season water budget
+export async function fetchClimateNormals(
+  latitude: number,
+  longitude: number
+): Promise<{ month: number; avgRainfallMm: number }[]> {
+  // Pull 10 years of data (faster than 30, still statistically meaningful)
+  const params = new URLSearchParams({
+    latitude: latitude.toString(),
+    longitude: longitude.toString(),
+    start_date: '2014-01-01',
+    end_date: '2023-12-31',
+    daily: 'precipitation_sum',
+    timezone: 'Australia/Melbourne',
+    wind_speed_unit: 'kmh',
+  })
+
+  try {
+    const res = await fetch(`https://archive-api.open-meteo.com/v1/archive?${params}`, {
+      next: { revalidate: 86400 * 30 }, // cache 30 days
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    const d = data.daily
+    if (!d?.time) return []
+
+    // Aggregate by month
+    const monthTotals: Record<number, number[]> = {}
+    for (let m = 1; m <= 12; m++) monthTotals[m] = []
+
+    for (let i = 0; i < d.time.length; i++) {
+      const month = parseInt(d.time[i].split('-')[1])
+      const rain = d.precipitation_sum[i] ?? 0
+      monthTotals[month].push(rain)
+    }
+
+    // Average monthly total (sum all daily rain per month, then average across years)
+    const yearCount = 10
+    return Object.entries(monthTotals).map(([m, vals]) => ({
+      month: parseInt(m),
+      avgRainfallMm: Math.round(vals.reduce((a, b) => a + b, 0) / yearCount),
+    }))
+  } catch {
+    return []
+  }
+}
+
+// Fetch growing season decile rainfall (10th, 30th, 50th, 80th, 100th percentile)
+// for the rainfall decile yield chart
+export async function fetchRainfallDeciles(
+  latitude: number,
+  longitude: number,
+  startMonth: number, // e.g. 4 for April
+  endMonth: number    // e.g. 10 for October
+): Promise<{ decile: number; label: string; rainfallMm: number }[]> {
+  const params = new URLSearchParams({
+    latitude: latitude.toString(),
+    longitude: longitude.toString(),
+    start_date: '1994-01-01',
+    end_date: '2023-12-31',
+    daily: 'precipitation_sum',
+    timezone: 'Australia/Melbourne',
+  })
+
+  try {
+    const res = await fetch(`https://archive-api.open-meteo.com/v1/archive?${params}`, {
+      next: { revalidate: 86400 * 30 },
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    const d = data.daily
+    if (!d?.time) return []
+
+    // Sum rainfall for each growing season
+    const seasonTotals: Record<number, number> = {}
+    for (let i = 0; i < d.time.length; i++) {
+      const [year, month] = d.time[i].split('-').map(Number)
+      const rain = d.precipitation_sum[i] ?? 0
+      if (month >= startMonth && month <= endMonth) {
+        if (!seasonTotals[year]) seasonTotals[year] = 0
+        seasonTotals[year] += rain
+      }
+    }
+
+    const totals = Object.values(seasonTotals).sort((a, b) => a - b)
+    const n = totals.length
+
+    const percentile = (p: number) => totals[Math.floor(p / 100 * n)] ?? 0
+
+    return [
+      { decile: 1, label: 'Decile 1\nVery low', rainfallMm: Math.round(percentile(10)) },
+      { decile: 3, label: 'Decile 2-3\nLow', rainfallMm: Math.round(percentile(25)) },
+      { decile: 5, label: 'Decile 4-7\nAverage', rainfallMm: Math.round(percentile(50)) },
+      { decile: 8, label: 'Decile 8-9\nHigh', rainfallMm: Math.round(percentile(75)) },
+      { decile: 10, label: 'Decile 10\nVery high', rainfallMm: Math.round(percentile(95)) },
+    ]
+  } catch {
+    return []
+  }
+}

@@ -5,7 +5,8 @@
 // Nitrogen-limited yield = based on available N and crop N requirement
 //
 // WUE default: 17 kg grain/mm (typical for Mallee wheat/barley)
-// Evaporation coefficient: ~110mm (typical opening rainfall lost to evaporation)
+// Evaporation coefficient: ~60mm (updated for southern Australia, modern varieties)
+// Sadras & Angus 2006, Harries et al. 2022 — reduced from original French-Schultz 110mm
 
 export type YieldPotentialResult = {
   waterLimitedTHa: number | null
@@ -34,7 +35,7 @@ export function calcYieldPotential(
   const notes: string[] = []
   const nReq = nReqKgPerTonne != null ? parseFloat(String(nReqKgPerTonne)) : 40
   const wue = wueKgPerMm != null ? parseFloat(String(wueKgPerMm)) : 17
-  const evapCoeff = 110 // mm lost to evaporation at season opening
+  const evapCoeff = 60 // mm lost to evaporation — southern Australia modern varieties (Harries et al. 2022)
 
   // Soil organic carbon contributes ~20 kg N/ha per 1% OC (Mallee estimate)
   const ocN = organicCarbonPct != null ? parseFloat(String(organicCarbonPct)) * 20 : 0
@@ -97,7 +98,7 @@ export function buildYieldChart(
 ): YieldChartPoint[] {
   const nReq = nReqKgPerTonne != null ? parseFloat(String(nReqKgPerTonne)) : 40
   const wue = wueKgPerMm != null ? parseFloat(String(wueKgPerMm)) : 17
-  const evapCoeff = 110
+  const evapCoeff = 60 // southern Australia modern varieties
   const ocN = organicCarbonPct != null ? parseFloat(String(organicCarbonPct)) * 20 : 0
   const totalN = availableNKgHa + ocN
 

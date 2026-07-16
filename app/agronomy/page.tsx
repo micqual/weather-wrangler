@@ -8,6 +8,11 @@ import { calcNBudget } from '@/lib/nBudget'
 import { calcYieldPotential } from '@/lib/yieldPotential'
 import { getPostApplicationWeather } from '@/lib/gdd'
 import { estimateNLosses } from '@/lib/volatilization'
+import { fetchBOMHistorical, fetchBOMForecast, fetchClimateNormals, fetchRainfallDeciles } from '@/lib/bom'
+import RainfallBudget from '@/components/RainfallBudget'
+import DecileYieldChart from '@/components/DecileYieldChart'
+import type { RainfallMonth } from '@/components/RainfallBudget'
+import type { DecileBar } from '@/components/DecileYieldChart'
 
 export const dynamic = 'force-dynamic'
 
@@ -89,7 +94,107 @@ export default async function AgronomyPage() {
       variety: s.crop_types.variety,
     } : null
 
-    return { station: s, safeCropType, nBudget, yieldResult, curve, currentAppliedN, zones, grainPrice }
+    // ── Rainfall budget ──
+    let rainfallMonths: any[] = []
+    let totalFallowMm = 0
+    let totalGrowingMm = 0
+    let totalRemainingMm = 0
+    let decileBars: any[] = []
+
+    if (s.latitude && s.longitude && s.planted_date) {
+      const plantedDate = new Date(s.planted_date)
+      const plantedYear = plantedDate.getFullYear()
+      const today = new Date()
+
+      // Previous harvest date = Nov 1 of previous year
+      const prevHarvestDate = new Date(plantedYear - 1, 10, 1)
+      const fallowEnd = new Date(plantedDate)
+      fallowEnd.setDate(fallowEnd.getDate() - 1)
+
+      // Estimated harvest date from GDD
+      const targetGDDVal = toNum(s.crop_types?.target_gdd_harvest)
+      const baseTemp = toNum(s.crop_types?.base_temp_gdd) || 4
+      const daysToHarvest = targetGDDVal > 0 ? Math.round(targetGDDVal / 9) : 200
+      const harvestDate = new Date(plantedDate.getTime() + daysToHarvest * 24 * 60 * 60 * 1000)
+
+      const [fallowData, growingData, forecastData, climateNormals, decileData] = await Promise.all([
+        fetchBOMHistorical(s.latitude, s.longitude,
+          prevHarvestDate.toLocaleDateString('en-CA'),
+          fallowEnd.toLocaleDateString('en-CA')
+        ),
+        fetchBOMHistorical(s.latitude, s.longitude,
+          plantedDate.toLocaleDateString('en-CA'),
+          (today < harvestDate ? today : harvestDate).toLocaleDateString('en-CA')
+        ),
+        today < harvestDate ? fetchBOMForecast(s.latitude, s.longitude) : Promise.resolve([]),
+        fetchClimateNormals(s.latitude, s.longitude),
+        fetchRainfallDeciles(s.latitude, s.longitude, plantedDate.getMonth() + 1, 10),
+      ])
+
+      // Fallow months
+      const fallowByMonth = new Map<string, number>()
+      for (const d of fallowData) {
+        const key = d.date.substring(0, 7)
+        fallowByMonth.set(key, (fallowByMonth.get(key) ?? 0) + (d.precipitation ?? 0))
+      }
+      for (const [key, rain] of Array.from(fallowByMonth.entries()).sort()) {
+        const [y, m] = key.split('-').map(Number)
+        const label = new Date(y, m - 1, 1).toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })
+        rainfallMonths.push({ month: m, year: y, label, rainfallMm: Math.round(rain * 10) / 10, source: 'bom-historical', efficiency: 25, period: 'fallow' })
+        totalFallowMm += rain
+      }
+
+      // Growing season months
+      const growingByMonth = new Map<string, number>()
+      for (const d of growingData) {
+        const key = d.date.substring(0, 7)
+        growingByMonth.set(key, (growingByMonth.get(key) ?? 0) + (d.precipitation ?? 0))
+      }
+      for (const [key, rain] of Array.from(growingByMonth.entries()).sort()) {
+        const [y, m] = key.split('-').map(Number)
+        const label = new Date(y, m - 1, 1).toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })
+        rainfallMonths.push({ month: m, year: y, label, rainfallMm: Math.round(rain * 10) / 10, source: 'bom-historical', efficiency: 80, period: 'growing' })
+        totalGrowingMm += rain
+      }
+
+      // Remaining season
+      if (today < harvestDate) {
+        const next7Rain = forecastData.slice(0, 7).reduce((sum: number, d: any) => sum + (d.precipitation ?? 0), 0)
+        if (next7Rain > 0) {
+          rainfallMonths.push({ month: today.getMonth() + 1, year: today.getFullYear(), label: 'Next 7d', rainfallMm: Math.round(next7Rain * 10) / 10, source: 'bom-forecast', efficiency: 80, period: 'remaining' })
+          totalRemainingMm += next7Rain
+        }
+        const nextMonth = new Date(today)
+        nextMonth.setDate(1)
+        nextMonth.setMonth(nextMonth.getMonth() + 1)
+        while (nextMonth < harvestDate) {
+          const m = nextMonth.getMonth() + 1
+          const normal = climateNormals.find((n: any) => n.month === m)
+          if (normal) {
+            const label = nextMonth.toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })
+            rainfallMonths.push({ month: m, year: nextMonth.getFullYear(), label, rainfallMm: normal.avgRainfallMm, source: 'bom-climate', efficiency: 80, period: 'remaining' })
+            totalRemainingMm += normal.avgRainfallMm
+          }
+          nextMonth.setMonth(nextMonth.getMonth() + 1)
+        }
+      }
+
+      // Decile bars
+      const wueVal = toNum(s.crop_types?.wue_kg_per_mm) || 20
+      const nReqVal = toNum(s.crop_types?.n_req_kg_per_tonne) || 40
+      const totalAvailableN = nBudget.totalAvailable
+
+      decileBars = decileData.map((d: any) => {
+        const storedWater = totalFallowMm * 0.25
+        const totalWater = Math.max(0, storedWater + d.rainfallMm * 0.8 - 60)
+        const waterLimited = Math.round(totalWater * wueVal) / 1000
+        const nLimited = Math.min(waterLimited, Math.round(totalAvailableN / nReqVal * 10) / 10)
+        const nGap = Math.max(0, waterLimited * nReqVal - totalAvailableN)
+        return { label: d.label, rainfallMm: d.rainfallMm, waterLimitedTHa: waterLimited, nLimitedTHa: nLimited, recommendedNKgHa: Math.round(nGap / 0.46) }
+      })
+    }
+
+    return { station: s, safeCropType, nBudget, yieldResult, curve, currentAppliedN, zones, grainPrice, rainfallMonths, totalFallowMm, totalGrowingMm, totalRemainingMm, decileBars }
   }))
 
   return (
@@ -106,7 +211,7 @@ export default async function AgronomyPage() {
         <Link href="/" style={{ color: 'var(--text-muted)', fontSize: 14, textDecoration: 'none' }}>← My Paddocks</Link>
       </div>
 
-      {stationData.map(({ station, safeCropType, nBudget, yieldResult, curve, currentAppliedN, grainPrice }) => (
+      {stationData.map(({ station, safeCropType, nBudget, yieldResult, curve, currentAppliedN, grainPrice, rainfallMonths, totalFallowMm, totalGrowingMm, totalRemainingMm, decileBars }) => (
         <div key={station.id} className="card" style={{ padding: 24, marginBottom: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
             <div>
@@ -170,6 +275,36 @@ export default async function AgronomyPage() {
             <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
               Economic optimum based on grain ${grainPrice}/t, N cost ${nCostPerKg}/kg.
               Efficiency constant c = {curve.cFactor} — contact your agronomist to calibrate per variety.
+            </div>
+          )}
+
+          {rainfallMonths.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 20 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 16px' }}>
+                Seasonal Water Budget
+              </h3>
+              <RainfallBudget
+                months={rainfallMonths}
+                totalFallowMm={totalFallowMm}
+                totalGrowingMm={totalGrowingMm}
+                totalRemainingMm={totalRemainingMm}
+                storedSoilWaterMm={toNumNull((station as any).stored_soil_water_mm)}
+                evapCoeff={60}
+                totalAvailableMm={Math.max(0, totalFallowMm * 0.25 + (totalGrowingMm + totalRemainingMm) * 0.8 - 60)}
+                waterLimitedYield={yieldResult.waterLimitedTHa}
+              />
+            </div>
+          )}
+
+          {decileBars.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 20 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 16px' }}>
+                Yield Potential by Rainfall Scenario
+              </h3>
+              <DecileYieldChart bars={decileBars} />
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12, fontStyle: 'italic' }}>
+                Based on 30-year growing season rainfall distribution for this location. Dark = water-limited yield (unlimited N). Light = yield with current N. Recommended N shown to reach water-limited potential.
+              </p>
             </div>
           )}
         </div>
