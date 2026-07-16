@@ -25,11 +25,6 @@ export default function DecileYieldChart({ bars }: { bars: DecileBar[] }) {
 
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              {/* Label top */}
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', whiteSpace: 'pre-line', lineHeight: 1.3, marginBottom: 4 }}>
-                {bar.label}
-              </div>
-
               {/* Bar container */}
               <div style={{ width: '100%', position: 'relative', height: totalHeight, display: 'flex', alignItems: 'flex-end' }}>
                 {/* Water-limited bar (dark) */}
@@ -73,6 +68,9 @@ export default function DecileYieldChart({ bars }: { bars: DecileBar[] }) {
               </div>
               <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center' }}>
                 {bar.rainfallMm} mm
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', whiteSpace: 'pre-line', lineHeight: 1.3, marginTop: 4 }}>
+                {bar.label}
               </div>
             </div>
           )
