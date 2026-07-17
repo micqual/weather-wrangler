@@ -5,7 +5,8 @@ import PrintButton from './PrintButton'
 import Link from 'next/link'
 import { fetchBOMHistorical, fetchBOMForecast, fetchClimateNormals } from '@/lib/bom'
 import { findNearestStation } from '@/lib/bomStations'
-import { calcNBudget } from '@/lib/nBudget'
+import { calcNBudget, buildNChart } from '@/lib/nBudget'
+import NitrogenChart from '@/components/NitrogenChart'
 import { getPostApplicationWeather } from '@/lib/gdd'
 import { estimateNLosses } from '@/lib/volatilization'
 import { getDailyRainWithRate } from '@/lib/gdd'
@@ -152,7 +153,16 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     const wsBatV = lastReading?.battery_mv ? (lastReading.battery_mv as number) / 1000 : null
     const nodeBatV = toN(lastReading?.esp_battery_v)
 
-    return { s, nBudget, preSowingN, postSowingN, avgTemp, maxTemp, minTemp, monthRain, bomRain, bomMaxTemp, nearest, totalGdd, gddPct, harvestDate, storedWater, growingWater, remainingWater, totalAvailableWater, dataCompleteness, wsBatV, nodeBatV, soilTests, phosphorusTests, organicCarbonPct }
+    // Build N chart
+    const nChartPoints = buildNChart(
+      appsWithWeather.filter(a => !(a as any).zone_id),
+      s.planted_date ? new Date(s.planted_date) : null,
+      toN(s.target_yield_t_ha),
+      toN(s.crop_types?.n_req_kg_per_tonne) ?? 40,
+      harvestDate ? Math.ceil((harvestDate.getTime() - Date.now()) / 86400000) : 180
+    )
+
+    return { s, nBudget, preSowingN, postSowingN, nChartPoints, avgTemp, maxTemp, minTemp, monthRain, bomRain, bomMaxTemp, nearest, totalGdd, gddPct, harvestDate, storedWater, growingWater, remainingWater, totalAvailableWater, dataCompleteness, wsBatV, nodeBatV, soilTests, phosphorusTests, organicCarbonPct }
   }))
 
   const months = Array.from({ length: 12 }, (_, i) => ({ m: i, y: i <= now.getMonth() ? now.getFullYear() : now.getFullYear() - 1 }))
@@ -189,7 +199,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
         </div>
       </div>
 
-      {stationData.map(({ s, nBudget, preSowingN, postSowingN, avgTemp, maxTemp, minTemp, monthRain, bomRain, bomMaxTemp, nearest, totalGdd, gddPct, harvestDate, storedWater, growingWater, remainingWater, totalAvailableWater, dataCompleteness, wsBatV, nodeBatV, soilTests, phosphorusTests, organicCarbonPct }) => (
+      {stationData.map(({ s, nBudget, preSowingN, postSowingN, nChartPoints, avgTemp, maxTemp, minTemp, monthRain, bomRain, bomMaxTemp, nearest, totalGdd, gddPct, harvestDate, storedWater, growingWater, remainingWater, totalAvailableWater, dataCompleteness, wsBatV, nodeBatV, soilTests, phosphorusTests, organicCarbonPct }) => (
         <div key={s.id} style={{ pageBreakBefore: 'always', marginBottom: 64 }}>
 
           {/* Paddock header */}
@@ -271,6 +281,13 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
               )}
             </div>
           </RSection>
+
+          {/* N loss chart */}
+          {nChartPoints.length > 0 && (
+            <RSection title="Nitrogen loss timeline">
+              <NitrogenChart points={nChartPoints} />
+            </RSection>
+          )}
 
           {/* Soil tests */}
           {(soilTests.length > 0 || phosphorusTests.length > 0) && (
