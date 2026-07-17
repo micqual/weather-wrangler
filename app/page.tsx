@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import { signOut } from '@/auth'
 import GddCard from '@/components/GddCard'
 import ETSparkline from '@/components/ETSparkline'
 import { getDailyAvgTemps, getDailyRainWithRate, getRainStats, getDailyAvgTempsWithGapFill } from '@/lib/gdd'
@@ -12,6 +13,7 @@ import { getSprayWindow } from '@/lib/sprayWindow'
 import { getFrostRisk } from '@/lib/frostRisk'
 import { getHeatStress } from '@/lib/heatStress'
 import { assessDiseaseRisk } from '@/lib/diseaseRisk'
+import { assessFireRisk } from '@/lib/fireRisk'
 import { getSubscriptionStatus, canAccessFeature } from '@/lib/subscription'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import LockedFeature from '@/components/LockedFeature'
@@ -94,11 +96,15 @@ export default async function Dashboard() {
             My <span style={{ color: 'var(--orange)' }}>Paddocks</span>
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: '4px 0 0' }}>
-            {stations.length} station{stations.length !== 1 ? 's' : ''} · click any reading for its 48h history
+            {stations.length} station{stations.length !== 1 ? 's' : ''} · tap any reading for weather history
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
+          <Link href="/guide" style={{ border: '1px solid var(--text-muted)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Guide</Link>
           <Link href="/methodology" style={{ border: '1px solid var(--text-muted)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Methodology</Link>
+          <form action={async () => { 'use server'; await signOut({ redirectTo: '/login' }) }}>
+            <button type="submit" style={{ border: '1px solid var(--text-muted)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, background: 'none', cursor: 'pointer' }}>Sign out</button>
+          </form>
           <Link href="/report" style={{ border: '1px solid var(--text-muted)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Report</Link>
           <Link href="/forecast" style={{ border: '1px solid var(--purple)', color: 'var(--purple)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Forecast</Link>
           {canAccessFeature(subStatus, 'pro') ? (
@@ -158,6 +164,7 @@ export default async function Dashboard() {
               todayET,
               etHistory,
               rainStats,
+              hourAgo,
             ] = await Promise.all([
               getDailyRainWithRate(s.id, prisma),
               (() => {
@@ -171,6 +178,11 @@ export default async function Dashboard() {
               getDailyET(s.id, s.elevation_m ?? null, s.latitude ?? null, prisma),
               get7DayET(s.id, s.elevation_m ?? null, s.latitude ?? null, prisma),
               getRainStats(s.id, prisma),
+              prisma.weather_readings.findFirst({
+                where: { station_id: s.id, created_at: { lte: new Date(Date.now() - 60 * 60 * 1000) } },
+                orderBy: { created_at: 'desc' },
+                select: { temperature_c: true, humidity: true },
+              }),
             ])
 
             const variance = dailyRain != null ? rainVariance(dailyRain, avgRateMMH) : null
@@ -182,6 +194,14 @@ export default async function Dashboard() {
             const frost = getFrostRisk(r?.temperature_c ?? null, r?.humidity ?? null, cropFrostTemp, hour)
             const dampness = assessFieldDampness(rainStats.rainLast24h, rainStats.rainLast72h, rainStats.daysSinceLastRain, todayET?.etoMmDay ?? null, s.soil_type ?? null, r?.temperature_c ?? null)
             const heat = s.crop_types ? getHeatStress(r?.temperature_c ?? null, s.growth_stage ?? null) : null
+            const gddProgress = cropTargetGdd > 0 ? (totalGdd / cropTargetGdd) : null
+            const fireRisk = assessFireRisk(
+              r?.temperature_c != null ? parseFloat(String(r.temperature_c)) : null,
+              r?.humidity != null ? parseFloat(String(r.humidity)) : null,
+              windKmh,
+              gddProgress
+            )
+
             const disease = assessDiseaseRisk(r?.temperature_c ?? null, r?.humidity ?? null, rainStats.rainLast24h, s.crop_types?.crop_name ?? null)
 
             const sprayIcon = spray.overall === 'go' ? '🟢' : spray.overall === 'caution' ? '🟡' : '🔴'
@@ -208,8 +228,8 @@ export default async function Dashboard() {
                 {/* Weather strip */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', margin: '12px 0 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
                   {[
-                    { href: `/station/${s.id}/history?metric=temp`, value: r?.temperature_c != null ? `${r.temperature_c.toFixed(1)}°` : '—', label: 'Temp' },
-                    { href: `/station/${s.id}/history?metric=humidity`, value: r?.humidity != null ? `${r.humidity}%` : '—', label: 'Humidity' },
+                    { href: `/station/${s.id}/history?metric=temp`, value: r?.temperature_c != null ? `${r.temperature_c.toFixed(1)}°` : '—', sub: (() => { const p = hourAgo?.temperature_c != null ? parseFloat(String(hourAgo.temperature_c)) : null; const c = r?.temperature_c != null ? parseFloat(String(r.temperature_c)) : null; if (!p || !c) return ''; const d = c - p; return d > 0.5 ? '↑' : d < -0.5 ? '↓' : '→'; })(), label: 'Temp' },
+                    { href: `/station/${s.id}/history?metric=humidity`, value: r?.humidity != null ? `${r.humidity}%` : '—', sub: (() => { const p = hourAgo?.humidity != null ? parseFloat(String(hourAgo.humidity)) : null; const c = r?.humidity != null ? parseFloat(String(r.humidity)) : null; if (!p || !c) return ''; const d = c - p; return d > 2 ? '↑' : d < -2 ? '↓' : '→'; })(), label: 'Humidity' },
                     { href: `/station/${s.id}/history?metric=wind`, value: windKmh ? `${windKmh} km/h` : '—', sub: windKmh ? `${arrow} ${compass}` : '', label: 'Wind' },
                     { href: `/station/${s.id}/history?metric=rain`, value: dailyRain != null ? `${dailyRain.toFixed(1)} mm` : '—', sub: variance?.label ?? '', label: 'Today' },
                   ].map((cell, i) => (
@@ -247,6 +267,7 @@ export default async function Dashboard() {
                     { name: 'Frost risk', value: frost.risk === 'none' ? 'No frost risk' : frost.risk === 'watch' ? 'Frost watch' : frost.risk === 'warning' ? 'Frost warning' : 'Frost!', status: frostIcon, detail: null },
                     { name: 'Field trafficability', value: dampness.level === 'dry' ? 'Drive OK' : dampness.level === 'damp' ? 'Proceed with caution' : 'Do not drive', status: dampness.icon, detail: null, subDetail: dampness.reason },
                     ...(disease.isCereal ? [{ name: 'Disease risk', value: disease.label, status: disease.icon, detail: disease.diseases.length > 0 ? disease.diseases.map(d => d.name).join(', ') : null }] : []),
+                    ...(fireRisk.show ? [{ name: '🔥 Fire risk', value: fireRisk.label, status: fireRisk.level === 'high' ? '🔴' : fireRisk.level === 'elevated' ? '🟡' : '🟢', detail: null, subDetail: fireRisk.level !== 'low' ? fireRisk.detail : null }] : []),
                     ...(heat && heat.level !== 'none' ? [{ name: 'Heat stress', value: heat.label, status: heat.level === 'severe' ? '🔴' : '🟡', detail: heat.reason }] : []),
                   ].map((row, i, arr) => (
                     <div key={i} style={{ padding: '9px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>

@@ -12,6 +12,8 @@ import IrrigationSection from './IrrigationSection'
 import ManualRainSection from './ManualRainSection'
 import { getPostApplicationWeather } from '@/lib/gdd'
 import { estimateNLosses } from '@/lib/volatilization'
+import { interpretSulphur, interpretChloride } from '@/lib/nutrientInterpretation'
+import { interpretPhosphorus } from '@/lib/phosphorus'
 
 export default async function StationDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -51,6 +53,49 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
   return (
     <div style={{ minHeight: '100vh', padding: '32px 24px', maxWidth: 880, margin: '0 auto' }}>
       <Link href="/" style={{ color: 'var(--text-muted)', fontSize: 14, textDecoration: 'none' }}>← Back to paddocks</Link>
+      {/* Soil test alerts */}
+      {(() => {
+        const alerts: { msg: string; color: string }[] = []
+        const latestN = nitrogenTests[0]
+        const latestP = phosphorusTests[0]
+        const cropName = station.crop_types?.crop_name ?? null
+        const soilType = station.soil_type ?? null
+
+        if (latestN?.sulphur_mg_kg != null) {
+          const s = interpretSulphur(parseFloat(String(latestN.sulphur_mg_kg)), cropName)
+          if (s.status === 'deficient') alerts.push({ msg: `⚠️ Sulphur deficient (${latestN.sulphur_mg_kg} mg/kg) — response to S fertiliser expected`, color: '#ef4444' })
+          else if (s.status === 'marginal') alerts.push({ msg: `⚠️ Sulphur marginal (${latestN.sulphur_mg_kg} mg/kg) — yield response possible`, color: '#f97316' })
+        }
+        if (latestN?.chloride_mg_kg != null) {
+          const cl = interpretChloride(parseFloat(String(latestN.chloride_mg_kg)), soilType, cropName)
+          if (cl.status === 'high') alerts.push({ msg: `⚠️ Chloride elevated (${latestN.chloride_mg_kg} mg/kg) — monitor for salinity symptoms`, color: '#f97316' })
+          else if (cl.status === 'toxic') alerts.push({ msg: `🔴 Chloride very high (${latestN.chloride_mg_kg} mg/kg) — significant salinity stress likely`, color: '#ef4444' })
+        }
+        if (latestP?.p_colwell_mg_kg != null && latestP?.pbi != null) {
+          const pbi = parseFloat(String(latestP.pbi))
+          const colwellP = parseFloat(String(latestP.p_colwell_mg_kg))
+          const criticalP = 4.6 * Math.pow(pbi, 0.393)
+          if (colwellP < criticalP * 0.7) alerts.push({ msg: `⚠️ Phosphorus deficient — Colwell P (${colwellP} mg/kg) well below critical (${criticalP.toFixed(0)} mg/kg)`, color: '#ef4444' })
+          else if (colwellP < criticalP) alerts.push({ msg: `⚠️ Phosphorus marginal — Colwell P (${colwellP} mg/kg) below critical (${criticalP.toFixed(0)} mg/kg)`, color: '#f97316' })
+        }
+        if (latestP?.ph_cacl2 != null) {
+          const ph = parseFloat(String(latestP.ph_cacl2))
+          if (ph < 4.8) alerts.push({ msg: `🔴 pH very low (${ph}) — aluminium toxicity likely, lime required urgently`, color: '#ef4444' })
+          else if (ph < 5.2) alerts.push({ msg: `⚠️ pH low (${ph}) — below optimal range, consider liming`, color: '#f97316' })
+        }
+
+        if (alerts.length === 0) return null
+        return (
+          <div style={{ marginBottom: 16 }}>
+            {alerts.map((a, i) => (
+              <div key={i} style={{ padding: '10px 14px', borderRadius: 8, border: `1px solid ${a.color}`, background: `${a.color}18`, fontSize: 13, color: a.color, marginBottom: 6 }}>
+                {a.msg}
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
       <h1 style={{ fontSize: 22, fontWeight: 700, margin: '12px 0 8px' }}>
         {station.paddock_name ?? station.id}
       </h1>
