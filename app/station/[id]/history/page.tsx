@@ -51,13 +51,24 @@ export default async function HistoryPage({
     rain_mm: r.rain_mm != null ? parseFloat(String(r.rain_mm)) : null,
   }))
 
-  const rainData = data.map((d, i) => {
-    if (i === 0 || d.rain_mm == null || data[i - 1].rain_mm == null) return { t: d.t, v: 0 }
-    const inc = d.rain_mm - data[i - 1].rain_mm!
-    // If negative or >50mm spike, treat as sensor reset — skip interval
-    if (inc < 0 || inc > 50) return { t: d.t, v: 0 }
-    return { t: d.t, v: inc }
-  })
+  // Convert cumulative rain_mm to increments, handling mid-day sensor resets
+  const rainData: { t: number; v: number }[] = []
+  let lastValidRaw: number | null = null
+  for (const d of data) {
+    if (d.rain_mm == null) { rainData.push({ t: d.t, v: 0 }); continue }
+    if (lastValidRaw == null) { lastValidRaw = d.rain_mm; rainData.push({ t: d.t, v: 0 }); continue }
+    const inc = d.rain_mm - lastValidRaw
+    if (inc < 0) {
+      // Sensor reset — skip this interval, update baseline to new value
+      rainData.push({ t: d.t, v: 0 })
+    } else if (inc > 50) {
+      // Impossible spike — skip
+      rainData.push({ t: d.t, v: 0 })
+    } else {
+      rainData.push({ t: d.t, v: inc })
+    }
+    lastValidRaw = d.rain_mm
+  }
 
   const fromStr = fromDate.toLocaleDateString('en-CA')
   const toStr = new Date(toDate).toLocaleDateString('en-CA')
