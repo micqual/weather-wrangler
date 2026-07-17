@@ -163,9 +163,11 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       <div className="no-print" style={{ padding: '16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', marginBottom: 32 }}>
         <Link href="/" style={{ color: '#666', fontSize: 13, textDecoration: 'none' }}>← My Paddocks</Link>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <select defaultValue={`${reportMonth}-${reportYear}`} onChange={e => { const [m, y] = e.target.value.split('-'); window.location.href = `/report?month=${m}&year=${y}` }} style={{ fontSize: 13, padding: '4px 8px', border: '1px solid #ddd', borderRadius: 6 }}>
-            {months.map(({ m, y }) => <option key={`${m}-${y}`} value={`${m}-${y}`}>{monthName(m)} {y}</option>)}
-          </select>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {months.map(({ m, y }) => (
+              <a key={`${m}-${y}`} href={`/report?month=${m}&year=${y}`} style={{ fontSize: 12, padding: '4px 10px', border: `1px solid ${m === reportMonth && y === reportYear ? '#7c5cbf' : '#ddd'}`, borderRadius: 6, textDecoration: 'none', color: m === reportMonth && y === reportYear ? '#7c5cbf' : '#666', fontFamily: 'sans-serif' }}>{monthName(m).slice(0, 3)}</a>
+            ))}
+          </div>
           <PrintButton />
         </div>
       </div>
