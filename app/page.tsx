@@ -199,7 +199,7 @@ export default async function Dashboard() {
             const fireRisk = assessFireRisk(
               r?.temperature_c != null ? parseFloat(String(r.temperature_c)) : null,
               r?.humidity != null ? parseFloat(String(r.humidity)) : null,
-              windKmh,
+              windKmh != null ? parseFloat(String(windKmh)) : null,
               gddProgress
             )
 
