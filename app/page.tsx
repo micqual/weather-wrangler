@@ -154,8 +154,8 @@ export default async function Dashboard() {
             const arrow = windArrow(r?.wind_dir_deg ?? null)
             const windKmh = r?.wind_avg_ms != null ? (r.wind_avg_ms * 3.6).toFixed(0) : null
 
-            const cropBaseTemp = toNum(s.crop_types?.base_temp_gdd)
-            const cropTargetGdd = toNum(s.crop_types?.target_gdd_harvest)
+            const cropBaseTemp = toNum(s.crop_types?.base_temp_gdd) ?? 4
+            const cropTargetGdd = toNum(s.crop_types?.target_gdd_harvest) ?? 0
             const cropFrostTemp = toNum(s.crop_types?.frost_alert_temp)
 
             const [
