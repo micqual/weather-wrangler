@@ -53,7 +53,10 @@ export default async function HistoryPage({
 
   const rainData = data.map((d, i) => {
     if (i === 0 || d.rain_mm == null || data[i - 1].rain_mm == null) return { t: d.t, v: 0 }
-    return { t: d.t, v: Math.max(0, d.rain_mm - data[i - 1].rain_mm!) }
+    const inc = d.rain_mm - data[i - 1].rain_mm!
+    // If negative or >50mm spike, treat as sensor reset — skip interval
+    if (inc < 0 || inc > 50) return { t: d.t, v: 0 }
+    return { t: d.t, v: inc }
   })
 
   const fromStr = fromDate.toLocaleDateString('en-CA')
