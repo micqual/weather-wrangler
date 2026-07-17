@@ -90,7 +90,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     if (s.latitude && s.longitude) {
       const bomData = await fetchBOMHistorical(s.latitude, s.longitude, monthStart.toLocaleDateString('en-CA'), monthEnd.toLocaleDateString('en-CA'))
       bomRain = bomData.reduce((sum, d) => sum + (d.precipitation ?? 0), 0)
-      bomMaxTemp = bomData.length > 0 ? Math.max(...bomData.map((d: any) => d.temperature_2m_max ?? 0)) : null
+      bomMaxTemp = bomData.length > 0 ? Math.max(...bomData.map((d: any) => d.tempMax ?? 0)) : null
     }
 
     // GDD
