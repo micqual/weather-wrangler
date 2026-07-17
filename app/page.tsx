@@ -194,7 +194,8 @@ export default async function Dashboard() {
             const frost = getFrostRisk(r?.temperature_c ?? null, r?.humidity ?? null, cropFrostTemp, hour)
             const dampness = assessFieldDampness(rainStats.rainLast24h, rainStats.rainLast72h, rainStats.daysSinceLastRain, todayET?.etoMmDay ?? null, s.soil_type ?? null, r?.temperature_c ?? null)
             const heat = s.crop_types ? getHeatStress(r?.temperature_c ?? null, s.growth_stage ?? null) : null
-            const gddProgress = cropTargetGdd != null && cropTargetGdd > 0 ? (totalGdd / cropTargetGdd) : null
+            const totalGdd = dailyAvgTemps.reduce((sum, t) => sum + Math.max(0, t - cropBaseTemp), 0)
+            const gddProgress = cropTargetGdd > 0 ? (totalGdd / cropTargetGdd) : null
             const fireRisk = assessFireRisk(
               r?.temperature_c != null ? parseFloat(String(r.temperature_c)) : null,
               r?.humidity != null ? parseFloat(String(r.humidity)) : null,
