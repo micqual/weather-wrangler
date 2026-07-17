@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { fetchBOMHistorical, fetchBOMForecast, fetchClimateNormals } from '@/lib/bom'
 import { findNearestStation } from '@/lib/bomStations'
 import { calcNBudget, buildNChart } from '@/lib/nBudget'
-import NitrogenChart from '@/components/NitrogenChart'
+import NBalanceChart from '@/components/NBalanceChart'
+import type { NBalancePoint } from '@/components/NBalanceChart'
 import { getPostApplicationWeather } from '@/lib/gdd'
 import { estimateNLosses } from '@/lib/volatilization'
 import { getDailyRainWithRate } from '@/lib/gdd'
@@ -162,7 +163,53 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       harvestDate ? Math.ceil((harvestDate.getTime() - Date.now()) / 86400000) : 180
     )
 
-    return { s, nBudget, preSowingN, postSowingN, nChartPoints, avgTemp, maxTemp, minTemp, monthRain, bomRain, bomMaxTemp, nearest, totalGdd, gddPct, harvestDate, storedWater, growingWater, remainingWater, totalAvailableWater, dataCompleteness, wsBatV, nodeBatV, soilTests, phosphorusTests, organicCarbonPct }
+    // Build N balance timeline
+    const soilTestN = (nBudget as any).soilTestN ?? 0
+    const ocN = (nBudget as any).ocN ?? 0
+    const startN = soilTestN + ocN
+    const plantedDateObj = s.planted_date ? new Date(s.planted_date) : null
+    const endDateObj = harvestDate ?? new Date(Date.now() + 60 * 86400000)
+
+    let nBalance: NBalancePoint[] = []
+    if (plantedDateObj) {
+      // Start with soil test N + OC
+      nBalance.push({ date: plantedDateObj, balance: startN, event: `Soil N ${startN.toFixed(0)} kg` })
+
+      // Add each application
+      const sortedApps = [...appsWithWeather.filter(a => !(a as any).zone_id)].sort((a, b) => new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime())
+      let runningBalance = startN
+      let prevDate = plantedDateObj
+
+      for (const app of sortedApps) {
+        const appDate = new Date(app.applied_at)
+        // Apply daily losses between prev date and this app
+        const days = Math.max(0, Math.floor((appDate.getTime() - prevDate.getTime()) / 86400000))
+        const dailyLoss = (app.losses?.volatilizationKgNHa ?? 0 + (app.losses?.leachingKgNHa ?? 0)) / 365
+        runningBalance = Math.max(0, runningBalance - days * dailyLoss)
+        // Add this application
+        const retained = app.losses?.retainedKgNHa ?? app.n_kg_ha
+        runningBalance += retained
+        nBalance.push({ date: appDate, balance: runningBalance, event: `+${retained.toFixed(0)} kg` })
+        prevDate = appDate
+      }
+
+      // Project to harvest with gradual loss
+      const totalDays = Math.ceil((endDateObj.getTime() - plantedDateObj.getTime()) / 86400000)
+      const cropNeed = (toN(s.target_yield_t_ha) ?? 3) * (toN(s.crop_types?.n_req_kg_per_tonne) ?? 40)
+      const dailyCropUptake = cropNeed / totalDays
+      let lastBalance = nBalance[nBalance.length - 1]?.balance ?? startN
+      const today = new Date()
+      const stepDays = 7
+      let stepDate = new Date(prevDate)
+      stepDate.setDate(stepDate.getDate() + stepDays)
+      while (stepDate <= (today < endDateObj ? today : endDateObj)) {
+        lastBalance = Math.max(0, lastBalance - dailyCropUptake * stepDays)
+        nBalance.push({ date: new Date(stepDate), balance: lastBalance })
+        stepDate.setDate(stepDate.getDate() + stepDays)
+      }
+    }
+
+    return { s, nBudget, preSowingN, postSowingN, nChartPoints, nBalance, avgTemp, maxTemp, minTemp, monthRain, bomRain, bomMaxTemp, nearest, totalGdd, gddPct, harvestDate, storedWater, growingWater, remainingWater, totalAvailableWater, dataCompleteness, wsBatV, nodeBatV, soilTests, phosphorusTests, organicCarbonPct }
   }))
 
   const months = Array.from({ length: 12 }, (_, i) => ({ m: i, y: i <= now.getMonth() ? now.getFullYear() : now.getFullYear() - 1 }))
@@ -199,7 +246,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
         </div>
       </div>
 
-      {stationData.map(({ s, nBudget, preSowingN, postSowingN, nChartPoints, avgTemp, maxTemp, minTemp, monthRain, bomRain, bomMaxTemp, nearest, totalGdd, gddPct, harvestDate, storedWater, growingWater, remainingWater, totalAvailableWater, dataCompleteness, wsBatV, nodeBatV, soilTests, phosphorusTests, organicCarbonPct }) => (
+      {stationData.map(({ s, nBudget, preSowingN, postSowingN, nChartPoints, nBalance, avgTemp, maxTemp, minTemp, monthRain, bomRain, bomMaxTemp, nearest, totalGdd, gddPct, harvestDate, storedWater, growingWater, remainingWater, totalAvailableWater, dataCompleteness, wsBatV, nodeBatV, soilTests, phosphorusTests, organicCarbonPct }) => (
         <div key={s.id} style={{ pageBreakBefore: 'always', marginBottom: 64 }}>
 
           {/* Paddock header */}
@@ -282,10 +329,10 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
             </div>
           </RSection>
 
-          {/* N loss chart */}
-          {nChartPoints.length > 0 && (
-            <RSection title="Nitrogen loss timeline">
-              <NitrogenChart points={nChartPoints} />
+          {/* N balance chart */}
+          {nBalance.length > 1 && (
+            <RSection title="Nitrogen balance timeline">
+              <NBalanceChart points={nBalance} />
             </RSection>
           )}
 
