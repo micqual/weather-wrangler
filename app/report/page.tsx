@@ -232,9 +232,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       {/* Report header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32, paddingBottom: 24, borderBottom: '2px solid #1a1a1a' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 56, height: 56, background: '#f3f0ff', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="34" height="34" viewBox="0 0 34 34" fill="none"><circle cx="17" cy="17" r="13" stroke="#7c5cbf" stroke-width="1.5"/><path d="M17 5L21 13L30 13L23 20L26 29L17 24L8 29L11 20L4 13L13 13Z" fill="#9b7dd4" opacity="0.8"/></svg>
-          </div>
+          <img src="/Logo.png" alt="Weather Wrangler" style={{ width: 64, height: 64, objectFit: 'contain' }} />
           <div>
             <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 2, fontFamily: 'sans-serif' }}>Weather Wrangler</div>
             <div style={{ fontSize: 22, fontWeight: 500 }}>Monthly Agronomy Report</div>
