@@ -99,26 +99,7 @@ export default async function Dashboard() {
             {stations.length} station{stations.length !== 1 ? 's' : ''} · tap any reading for weather history
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Link href="/guide" style={{ border: '1px solid var(--text-muted)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Guide</Link>
-          <Link href="/methodology" style={{ border: '1px solid var(--text-muted)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Methodology</Link>
-          <form action={async () => { 'use server'; await signOut({ redirectTo: '/login' }) }}>
-            <button type="submit" style={{ border: '1px solid var(--text-muted)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, background: 'none', cursor: 'pointer' }}>Sign out</button>
-          </form>
-          <Link href="/report" style={{ border: '1px solid var(--text-muted)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Report</Link>
-          <Link href="/forecast" style={{ border: '1px solid var(--purple)', color: 'var(--purple)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Forecast</Link>
-          {canAccessFeature(subStatus, 'pro') ? (
-            <Link href="/agronomy" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Agronomy</Link>
-          ) : (
-            <span style={{ border: '1px solid var(--border)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'default' }} title="Requires Pro plan — contact info@weatherwrangler.net">Agronomy 🔒</span>
-          )}
-          {canAccessFeature(subStatus, 'pro') ? (
-            <Link href="/nitrogen" style={{ border: '1px solid var(--purple)', color: 'var(--purple)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Nitrogen</Link>
-          ) : (
-            <span style={{ border: '1px solid var(--border)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'default' }} title="Requires Pro plan — contact info@weatherwrangler.net">Nitrogen 🔒</span>
-          )}
-          {isAdmin && <Link href="/admin" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Admin</Link>}
-        </div>
+        <NavMenu canPro={canAccessFeature(subStatus, 'pro')} isAdmin={isAdmin} />
       </div>
 
       <SubscriptionBanner

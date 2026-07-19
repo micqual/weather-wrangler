@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function NavMenu({ canPro }: { canPro: boolean }) {
+export default function NavMenu({ canPro, isAdmin }: { canPro: boolean; isAdmin: boolean }) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
 
@@ -15,6 +15,7 @@ export default function NavMenu({ canPro }: { canPro: boolean }) {
     { label: 'Guide', href: '/guide', color: 'var(--text-muted)' },
     { label: 'Methodology', href: '/methodology', color: 'var(--text-muted)' },
     { label: 'Sign out', href: '/api/auth/signout', color: 'var(--text-muted)' },
+    ...(isAdmin ? [{ label: 'Admin', href: '/admin', color: 'var(--orange)' }] : []),
   ]
 
   return (
