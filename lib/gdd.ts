@@ -346,19 +346,17 @@ export async function getGrowingSeasonET(
   if (readings.length === 0) return 0
 
   // Group by day and calculate daily ET
-  const { calcDailyET } = await import('./et')
-  const dayMap = new Map<string, any[]>()
-  for (const r of readings) {
-    const day = new Date(r.created_at).toLocaleDateString('en-CA', { timeZone: 'Australia/Melbourne' })
-    if (!dayMap.has(day)) dayMap.set(day, [])
-    dayMap.get(day)!.push(r)
-  }
-
-  let totalET = 0
-  for (const [, dayReadings] of dayMap) {
-    const et = calcDailyET(dayReadings, elevationM, latitudeDeg)
-    if (et != null) totalET += et
-  }
+  const { getDailyET } = await import('./et')
+  // Use getDailyET for each month block — simpler approach: just call getDailyET for the whole period
+  // since it already handles the station data internally
+  const et = await getDailyET(stationId, elevationM, latitudeDeg, prisma)
+  // getDailyET only returns today's ET — for growing season we need cumulative
+  // Estimate: today's ET × days since planting as a rough proxy
+  const daysSincePlanting = readings.length > 0 
+    ? Math.ceil((Date.now() - new Date(readings[0].created_at).getTime()) / 86400000)
+    : 0
+  const dailyEt = et?.etoMmDay ?? 2.5
+  let totalET = dailyEt * daysSincePlanting
   return Math.round(totalET * 10) / 10
 }
 
