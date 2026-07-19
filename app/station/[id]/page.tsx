@@ -163,6 +163,21 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
         />
       </CollapsibleSection>
 
+      <CollapsibleSection title={`Crop rotation (${cropRotation.length})`} defaultOpen={false}>
+        <CropRotationSection
+          stationId={id}
+          entries={cropRotation.map(e => ({
+            id: e.id,
+            crop_name: e.crop_name,
+            variety: e.variety,
+            planted_date: e.planted_date,
+            harvest_date: e.harvest_date,
+            yield_t_ha: e.yield_t_ha != null ? parseFloat(String(e.yield_t_ha)) : null,
+            notes: e.notes,
+          }))}
+        />
+      </CollapsibleSection>
+
       <CollapsibleSection title={`Historical rain (${manualRain.length})`} defaultOpen={manualRain.length > 0}>
         <ManualRainSection
           stationId={station.id}
