@@ -39,10 +39,23 @@ export default function AdminMap({ stations }: { stations: StationMarker[] }) {
         12
       )
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
-      }).addTo(map)
+      })
+
+      const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '© Esri, Maxar, Earthstar Geographics',
+        maxZoom: 19,
+      })
+
+      esri.addTo(map)
+
+      L.control.layers(
+        { 'Satellite': esri, 'Street map': osm },
+        {},
+        { position: 'topright', collapsed: false }
+      ).addTo(map)
 
       stations.forEach(s => {
         const color = s.alertLevel === 'critical' ? '#ef4444'

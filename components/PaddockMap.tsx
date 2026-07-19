@@ -42,10 +42,31 @@ export default function PaddockMap({
 
       const map = L.map(mapRef.current!, { preferCanvas: false }).setView(defaultCenter, 14)
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
-      }).addTo(map)
+      })
+
+      const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '© Esri, Maxar, Earthstar Geographics',
+        maxZoom: 19,
+      })
+
+      const esriLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '',
+        maxZoom: 19,
+        opacity: 0.8,
+      })
+
+      // Default to satellite
+      esri.addTo(map)
+      esriLabels.addTo(map)
+
+      L.control.layers(
+        { 'Satellite': esri, 'Street map': osm },
+        { 'Labels': esriLabels },
+        { position: 'topright', collapsed: false }
+      ).addTo(map)
 
       // Zone colours
       const ZONE_COLORS = ['#f2762a', '#b182ff', '#4ade80', '#60a5fa', '#facc15', '#f97316', '#a78bfa']
