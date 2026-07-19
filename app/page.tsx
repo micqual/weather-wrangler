@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import GddCard from '@/components/GddCard'
 import ETSparkline from '@/components/ETSparkline'
-import { getDailyAvgTemps, getDailyRainWithRate, getRainStats, getDailyAvgTempsWithGapFill } from '@/lib/gdd'
+import { getDailyAvgTemps, getDailyRainWithRate, getRainStats, getDailyAvgTempsWithGapFill, getGrowingSeasonRain, getGrowingSeasonET, getLastFrostDate } from '@/lib/gdd'
 import { degreesToCompass, windArrow, rainVariance } from '@/lib/wind'
 import { getDailyET, get7DayET } from '@/lib/et'
 import { assessFieldDampness } from '@/lib/fieldDampness'
@@ -145,6 +145,9 @@ export default async function Dashboard() {
               todayET,
               etHistory,
               rainStats,
+              growingSeasonRain,
+              growingSeasonET,
+              frostHistory,
               hourAgo,
             ] = await Promise.all([
               getDailyRainWithRate(s.id, prisma),
@@ -159,6 +162,9 @@ export default async function Dashboard() {
               getDailyET(s.id, s.elevation_m ?? null, s.latitude ?? null, prisma),
               get7DayET(s.id, s.elevation_m ?? null, s.latitude ?? null, prisma),
               getRainStats(s.id, prisma),
+              s.planted_date ? getGrowingSeasonRain(s.id, new Date(s.planted_date), prisma) : Promise.resolve(0),
+              s.planted_date ? getGrowingSeasonET(s.id, new Date(s.planted_date), s.elevation_m ?? null, s.latitude ?? null, prisma) : Promise.resolve(0),
+              getLastFrostDate(s.id, prisma),
               prisma.weather_readings.findFirst({
                 where: { station_id: s.id, created_at: { lte: new Date(Date.now() - 60 * 60 * 1000) } },
                 orderBy: { created_at: 'desc' },
@@ -244,12 +250,27 @@ export default async function Dashboard() {
                 <div style={{ margin: '0 20px', background: 'rgba(0,0,0,0.2)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 12 }}>
                   {[
                     { name: 'Evapotranspiration', value: todayET ? `${todayET.etoMmDay} mm/day` : '—', status: null, detail: null, extra: <ETSparkline points={etHistory} /> },
+                    ...(s.planted_date ? [{
+                      name: 'Water deficit',
+                      value: growingSeasonET > 0 ? `${Math.max(0, growingSeasonET - growingSeasonRain).toFixed(0)} mm` : '—',
+                      status: (() => { const d = growingSeasonET - growingSeasonRain; return d < 20 ? '🟢' : d < 50 ? '🟡' : '🔴' })(),
+                      detail: null,
+                      subDetail: growingSeasonET > 0 ? `ET ${growingSeasonET.toFixed(0)}mm − Rain ${growingSeasonRain.toFixed(0)}mm since planting` : null,
+                    }] : []),
                     { name: 'Delta T', value: spray.deltaT != null ? `${spray.deltaT.toFixed(1)}°C` : '—', status: deltaTIcon, detail: null, subDetail: spray.deltaT != null ? (spray.deltaT < 2 ? '2–8°C optimal range — current too low' : spray.deltaT > 8 ? '2–8°C optimal range — current too high' : '2–8°C optimal') : null },
                     { name: 'Spray window', subDetail: spray.overall !== 'go' ? spray.conditions.filter(c => c.status !== 'go').map(c => `${c.label}: ${c.value} (${c.reason})`).join(' · ') : null, value: spray.overall === 'go' ? 'Good to spray' : spray.overall === 'caution' ? 'Spray with caution' : 'Do not spray', status: sprayIcon, detail: null },
                     { name: 'Frost risk', value: frost.risk === 'none' ? 'No frost risk' : frost.risk === 'watch' ? 'Frost watch' : frost.risk === 'warning' ? 'Frost warning' : 'Frost!', status: frostIcon, detail: null },
                     { name: 'Field trafficability', value: dampness.level === 'dry' ? 'Drive OK' : dampness.level === 'damp' ? 'Proceed with caution' : 'Do not drive', status: dampness.icon, detail: null, subDetail: dampness.reason },
                     ...(disease.isCereal ? [{ name: 'Disease risk', value: disease.label, status: disease.icon, detail: disease.diseases.length > 0 ? disease.diseases.map(d => d.name).join(', ') : null }] : []),
-                    ...(fireRisk.show ? [{ name: '🔥 Fire risk', value: fireRisk.label, status: fireRisk.level === 'high' ? '🔴' : fireRisk.level === 'elevated' ? '🟡' : '🟢', detail: null, subDetail: fireRisk.level !== 'low' ? fireRisk.detail : null }] : []),
+                    ...(s.planted_date ? [{ name: 'Season rainfall', value: `${growingSeasonRain.toFixed(1)} mm`, status: null, detail: null, subDetail: `Since ${new Date(s.planted_date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}` }] : []),
+                    ...(frostHistory.lastFrostDate != null ? [{
+                      name: 'Last frost',
+                      value: frostHistory.daysSinceFrost === 0 ? 'Today' : `${frostHistory.daysSinceFrost}d ago`,
+                      status: frostHistory.daysSinceFrost != null && frostHistory.daysSinceFrost < 7 ? '🔴' : frostHistory.daysSinceFrost != null && frostHistory.daysSinceFrost < 14 ? '🟡' : '🟢',
+                      detail: null,
+                      subDetail: frostHistory.lastFrostDate.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }),
+                    }] : []),
+                    ...(fireRisk.show ? [{ name: '🔥 Fire risk', value: fireRisk.label, status: fireRisk.level === 'high' ? '🔴' : fireRisk.level === 'elevated' ? '🟡' : '🟢', detail: null, subDetail: fireRisk.level !== 'low' ? fireRisk.detail : null }] : [])]
                     ...(heat && heat.level !== 'none' ? [{ name: 'Heat stress', value: heat.label, status: heat.level === 'severe' ? '🔴' : '🟡', detail: heat.reason }] : []),
                   ].map((row, i, arr) => (
                     <div key={i} style={{ padding: '9px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>

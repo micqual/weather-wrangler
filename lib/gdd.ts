@@ -304,3 +304,78 @@ export async function getDailyAvgTempsWithGapFill(
 
   return [...bomAvgTemps, ...stationTemps]
 }
+
+// Growing season rainfall since planted date
+export async function getGrowingSeasonRain(
+  stationId: string,
+  plantedDate: Date,
+  prisma: any
+): Promise<number> {
+  const readings = await prisma.weather_readings.findMany({
+    where: { station_id: stationId, created_at: { gte: plantedDate }, rain_mm: { not: null } },
+    orderBy: { created_at: 'asc' },
+    select: { rain_mm: true, created_at: true },
+  })
+
+  if (readings.length < 2) return 0
+
+  let total = 0
+  for (let i = 1; i < readings.length; i++) {
+    const prev = parseFloat(String(readings[i - 1].rain_mm))
+    const curr = parseFloat(String(readings[i].rain_mm))
+    const inc = curr - prev
+    if (inc > 0 && inc < 50) total += inc
+  }
+  return Math.round(total * 10) / 10
+}
+
+// Cumulative ET since planted date
+export async function getGrowingSeasonET(
+  stationId: string,
+  plantedDate: Date,
+  elevationM: number | null,
+  latitudeDeg: number | null,
+  prisma: any
+): Promise<number> {
+  const readings = await prisma.weather_readings.findMany({
+    where: { station_id: stationId, created_at: { gte: plantedDate } },
+    orderBy: { created_at: 'asc' },
+    select: { created_at: true, temperature_c: true, humidity: true, wind_avg_ms: true, solar_v: true },
+  })
+
+  if (readings.length === 0) return 0
+
+  // Group by day and calculate daily ET
+  const { calcDailyET } = await import('./et')
+  const dayMap = new Map<string, any[]>()
+  for (const r of readings) {
+    const day = new Date(r.created_at).toLocaleDateString('en-CA', { timeZone: 'Australia/Melbourne' })
+    if (!dayMap.has(day)) dayMap.set(day, [])
+    dayMap.get(day)!.push(r)
+  }
+
+  let totalET = 0
+  for (const [, dayReadings] of dayMap) {
+    const et = calcDailyET(dayReadings, elevationM, latitudeDeg)
+    if (et != null) totalET += et
+  }
+  return Math.round(totalET * 10) / 10
+}
+
+// Last frost date — scan back for last reading ≤0°C
+export async function getLastFrostDate(
+  stationId: string,
+  prisma: any
+): Promise<{ lastFrostDate: Date | null; daysSinceFrost: number | null }> {
+  const frostReading = await prisma.weather_readings.findFirst({
+    where: { station_id: stationId, temperature_c: { lte: 0 } },
+    orderBy: { created_at: 'desc' },
+    select: { created_at: true },
+  })
+
+  if (!frostReading) return { lastFrostDate: null, daysSinceFrost: null }
+
+  const lastFrostDate = new Date(frostReading.created_at)
+  const daysSinceFrost = Math.floor((Date.now() - lastFrostDate.getTime()) / (1000 * 60 * 60 * 24))
+  return { lastFrostDate, daysSinceFrost }
+}
