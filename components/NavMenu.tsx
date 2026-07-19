@@ -6,6 +6,7 @@ export default function NavMenu({ canPro, isAdmin }: { canPro: boolean; isAdmin:
   const [open, setOpen] = useState(false)
 
   const items = [
+    { label: 'My Farm', href: '/map', color: 'var(--text-muted)', locked: false },
     { label: 'Forecast', href: '/forecast', color: 'var(--purple)', locked: false },
     { label: 'Nitrogen', href: '/nitrogen', color: 'var(--purple)', locked: !canPro },
     { label: 'Agronomy', href: '/agronomy', color: 'var(--orange)', locked: !canPro },
