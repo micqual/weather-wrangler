@@ -270,7 +270,7 @@ export default async function Dashboard() {
                       detail: null,
                       subDetail: frostHistory.lastFrostDate.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }),
                     }] : []),
-                    ...(fireRisk.show ? [{ name: '🔥 Fire risk', value: fireRisk.label, status: fireRisk.level === 'high' ? '🔴' : fireRisk.level === 'elevated' ? '🟡' : '🟢', detail: null, subDetail: fireRisk.level !== 'low' ? fireRisk.detail : null }] : [])]
+                    ...(fireRisk.show ? [{ name: '🔥 Fire risk', value: fireRisk.label, status: fireRisk.level === 'high' ? '🔴' : fireRisk.level === 'elevated' ? '🟡' : '🟢', detail: null, subDetail: fireRisk.level !== 'low' ? fireRisk.detail : null }] : []),
                     ...(heat && heat.level !== 'none' ? [{ name: 'Heat stress', value: heat.label, status: heat.level === 'severe' ? '🔴' : '🟡', detail: heat.reason }] : []),
                   ].map((row, i, arr) => (
                     <div key={i} style={{ padding: '9px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
