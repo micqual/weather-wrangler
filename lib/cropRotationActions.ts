@@ -12,6 +12,7 @@ export async function addCropRotation(prevState: ActionState, formData: FormData
   const planted_date = formData.get('planted_date') as string
   const harvest_date = formData.get('harvest_date') as string
   const yield_t_ha = formData.get('yield_t_ha') as string
+  const zone_id = formData.get('zone_id') as string
   const notes = formData.get('notes') as string
 
   if (!crop_name) return { error: 'Crop name is required.' }
@@ -25,6 +26,7 @@ export async function addCropRotation(prevState: ActionState, formData: FormData
       harvest_date: harvest_date ? new Date(harvest_date) : null,
       yield_t_ha: yield_t_ha ? parseFloat(yield_t_ha) : null,
       notes: notes || null,
+      zone_id: zone_id || null,
     },
   })
 

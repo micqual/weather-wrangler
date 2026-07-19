@@ -166,6 +166,7 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
       <CollapsibleSection title={`Crop rotation (${cropRotation.length})`} defaultOpen={false}>
         <CropRotationSection
           stationId={id}
+          zones={zones.map(z => ({ id: z.id, name: z.name }))}
           entries={cropRotation.map(e => ({
             id: e.id,
             crop_name: e.crop_name,
@@ -174,6 +175,7 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
             harvest_date: e.harvest_date,
             yield_t_ha: e.yield_t_ha != null ? parseFloat(String(e.yield_t_ha)) : null,
             notes: e.notes,
+            zone_name: zones.find(z => z.id === (e as any).zone_id)?.name ?? null,
           }))}
         />
       </CollapsibleSection>

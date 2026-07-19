@@ -13,12 +13,16 @@ type RotationEntry = {
   notes: string | null
 }
 
+type Zone = { id: string; name: string | null }
+
 export default function CropRotationSection({
   stationId,
   entries,
+  zones,
 }: {
   stationId: string
   entries: RotationEntry[]
+  zones: Zone[]
 }) {
   const [addState, addAction, addPending] = useActionState(addCropRotation, null)
   const [deleteState, deleteAction] = useActionState(deleteCropRotation, null)
@@ -35,6 +39,7 @@ export default function CropRotationSection({
         <div key={e.id} style={{ padding: '8px 0', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: 13 }}>
           <div>
             <span style={{ fontWeight: 600 }}>{e.crop_name}{e.variety ? ` (${e.variety})` : ''}</span>
+            {(e as any).zone_name && <span style={{ color: 'var(--purple)', marginLeft: 6, fontSize: 11 }}>{(e as any).zone_name}</span>}
             {e.planted_date && <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>planted {new Date(e.planted_date).toLocaleDateString('en-AU')}</span>}
             {e.harvest_date && <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>harvested {new Date(e.harvest_date).toLocaleDateString('en-AU')}</span>}
             {e.yield_t_ha != null && <span style={{ color: 'var(--orange)', marginLeft: 8 }}>{e.yield_t_ha} t/ha</span>}
@@ -43,6 +48,10 @@ export default function CropRotationSection({
           <form action={deleteAction}>
             <input type="hidden" name="id" value={e.id} />
             <input type="hidden" name="station_id" value={stationId} />
+        <select className="input" name="zone_id" style={{ marginBottom: 0 }}>
+          <option value="">Whole paddock</option>
+          {zones.map(z => <option key={z.id} value={z.id}>{z.name ?? z.id}</option>)}
+        </select>
             <button type="submit" style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: 12, cursor: 'pointer' }}>Remove</button>
           </form>
         </div>
@@ -50,6 +59,10 @@ export default function CropRotationSection({
 
       <form action={addAction} style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <input type="hidden" name="station_id" value={stationId} />
+        <select className="input" name="zone_id" style={{ marginBottom: 0 }}>
+          <option value="">Whole paddock</option>
+          {zones.map(z => <option key={z.id} value={z.id}>{z.name ?? z.id}</option>)}
+        </select>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <input className="input" name="crop_name" placeholder="Crop (e.g. Wheat)" required />
           <input className="input" name="variety" placeholder="Variety (e.g. Scepter)" />
