@@ -176,6 +176,7 @@ export default function FarmMap({ stations }: { stations: StationData[] }) {
   const layersRef = useRef<any[]>([])
   const [activeLayer, setActiveLayer] = useState<Layer>('crop')
   const [selectedStation, setSelectedStation] = useState<StationData | null>(null)
+  const [cropFilter, setCropFilter] = useState<string>('all')
 
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return
@@ -246,19 +247,26 @@ export default function FarmMap({ stations }: { stations: StationData[] }) {
     })
   }, [])
 
-  // Update colours when layer changes
+  // Update colours and visibility when layer or filter changes
   useEffect(() => {
     layersRef.current.forEach(({ layer, station, isMarker }) => {
+      const visible = cropFilter === 'all' || station.cropName === cropFilter
       const color = getColor(station, activeLayer)
-      if (isMarker) {
-        layer.setStyle({ color, fillColor: color })
+      if (visible) {
+        if (isMarker) {
+          layer.setStyle({ color, fillColor: color, opacity: 1, fillOpacity: 0.9 })
+        } else {
+          layer.setStyle({ color, fillColor: color, fillOpacity: 0.35, opacity: 1 })
+        }
       } else {
-        layer.setStyle({ color, fillColor: color, fillOpacity: 0.35 })
+        layer.setStyle({ opacity: 0, fillOpacity: 0 })
       }
     })
-  }, [activeLayer])
+  }, [activeLayer, cropFilter])
 
-  const legendItems = getLegendItems(activeLayer, stations)
+  const uniqueCrops = ['all', ...Array.from(new Set(stations.map(s => s.cropName).filter(Boolean) as string[]))]
+  const filteredStations = cropFilter === 'all' ? stations : stations.filter(s => s.cropName === cropFilter)
+  const legendItems = getLegendItems(activeLayer, filteredStations)
 
   return (
     <div style={{ position: 'relative', height: 'calc(100vh - 53px)' }}>
@@ -279,6 +287,24 @@ export default function FarmMap({ stations }: { stations: StationData[] }) {
             {LAYER_LABELS[l]}
           </button>
         ))}
+
+        {/* Crop filter */}
+        {uniqueCrops.length > 2 && (
+          <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, fontWeight: 600 }}>Filter crop</div>
+            {uniqueCrops.map(crop => (
+              <button key={crop} onClick={() => setCropFilter(crop)} style={{
+                display: 'block', width: '100%', textAlign: 'left', padding: '5px 8px',
+                background: cropFilter === crop ? 'var(--bg-pro)' : 'none',
+                border: 'none', borderRadius: 6, fontSize: 12,
+                color: cropFilter === crop ? 'var(--text-pro)' : 'var(--text)',
+                cursor: 'pointer', marginBottom: 2,
+              }}>
+                {crop === 'all' ? 'All crops' : crop}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Legend */}
         <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 8 }}>
