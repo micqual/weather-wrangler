@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import FarmMap from './FarmMap'
-import { getDailyRainWithRate, getDailyAvgTempsWithGapFill } from '@/lib/gdd'
+import { getDailyRainWithRate, getDailyAvgTempsWithGapFill, getGrowingSeasonRain } from '@/lib/gdd'
+import { calcNBudget } from '@/lib/nBudget'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,6 +41,34 @@ export default async function MapPage() {
       }
     }
 
+    // N budget
+    const [soilTests, phosphorusTests, nitrogenApps] = await Promise.all([
+      prisma.nitrogen_soil_tests.findMany({ where: { station_id: s.id }, orderBy: { tested_at: 'desc' } }),
+      prisma.phosphorus_soil_tests.findMany({ where: { station_id: s.id }, orderBy: { tested_at: 'desc' } }),
+      prisma.nitrogen_applications.findMany({ where: { station_id: s.id }, orderBy: { applied_at: 'desc' } }),
+    ])
+
+    const nBudget = calcNBudget(soilTests, nitrogenApps, s.soil_type ?? null, s.target_yield_t_ha ?? null, 40)
+    const totalAvailableN = nBudget.totalAvailable > 0 ? nBudget.totalAvailable : null
+
+    // P status
+    const latestP = phosphorusTests[0]
+    let pStatus: string | null = null
+    if (latestP?.p_colwell_mg_kg != null && latestP?.pbi != null) {
+      const colwellP = parseFloat(String(latestP.p_colwell_mg_kg))
+      const pbi = parseFloat(String(latestP.pbi))
+      const criticalP = 4.6 * Math.pow(pbi, 0.393)
+      if (colwellP < criticalP * 0.7) pStatus = 'deficient'
+      else if (colwellP < criticalP) pStatus = 'marginal'
+      else if (colwellP < criticalP * 1.5) pStatus = 'adequate'
+      else pStatus = 'high'
+    }
+
+    // Growing season rain
+    const growingSeasonRain = s.planted_date
+      ? await getGrowingSeasonRain(s.id, new Date(s.planted_date), prisma)
+      : null
+
     // Latest reading
     const latest = await prisma.weather_readings.findFirst({
       where: { station_id: s.id },
@@ -60,6 +89,9 @@ export default async function MapPage() {
       tempC: latest?.temperature_c != null ? parseFloat(String(latest.temperature_c)) : null,
       gddPct,
       daysToHarvest,
+      growingSeasonRain,
+      totalAvailableN,
+      pStatus,
       polygons: s.paddock_polygons.map(p => ({
         id: p.id,
         name: p.name,

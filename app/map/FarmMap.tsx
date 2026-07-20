@@ -15,10 +15,13 @@ type StationData = {
   tempC: number | null
   gddPct: number
   daysToHarvest: number | null
+  growingSeasonRain: number | null
+  totalAvailableN: number | null
+  pStatus: string | null
   polygons: { id: string; name: string | null; geojson: any }[]
 }
 
-type Layer = 'crop' | 'rain' | 'temp' | 'gdd' | 'harvest'
+type Layer = 'crop' | 'rain' | 'temp' | 'gdd' | 'harvest' | 'season_rain' | 'nitrogen' | 'phosphorus'
 
 const LAYER_LABELS: Record<Layer, string> = {
   crop: 'Crop type',
@@ -26,6 +29,9 @@ const LAYER_LABELS: Record<Layer, string> = {
   temp: 'Temperature',
   gdd: 'GDD progress',
   harvest: 'Days to harvest',
+  season_rain: 'Season rainfall',
+  nitrogen: 'N available',
+  phosphorus: 'P status',
 }
 
 const CROP_COLOURS: Record<string, string> = {
@@ -61,6 +67,30 @@ function gddColor(pct: number): string {
   return '#ef4444'
 }
 
+function seasonRainColor(mm: number | null): string {
+  if (mm == null) return '#888'
+  if (mm < 50) return '#f2762a'
+  if (mm < 100) return '#facc15'
+  if (mm < 200) return '#4ade80'
+  return '#60a5fa'
+}
+
+function nitrogenColor(kg: number | null): string {
+  if (kg == null) return '#888'
+  if (kg < 40) return '#ef4444'
+  if (kg < 80) return '#f97316'
+  if (kg < 120) return '#facc15'
+  return '#4ade80'
+}
+
+function phosphorusColor(status: string | null): string {
+  if (status == null) return '#888'
+  if (status === 'deficient') return '#ef4444'
+  if (status === 'marginal') return '#f97316'
+  if (status === 'adequate') return '#4ade80'
+  return '#60a5fa' // high
+}
+
 function harvestColor(days: number | null): string {
   if (days == null) return '#888'
   if (days < 14) return '#ef4444'
@@ -76,6 +106,9 @@ function getColor(s: StationData, layer: Layer): string {
     case 'temp': return tempColor(s.tempC)
     case 'gdd': return gddColor(s.gddPct)
     case 'harvest': return harvestColor(s.daysToHarvest)
+    case 'season_rain': return seasonRainColor(s.growingSeasonRain ?? null)
+    case 'nitrogen': return nitrogenColor(s.totalAvailableN ?? null)
+    case 'phosphorus': return phosphorusColor(s.pStatus ?? null)
   }
 }
 
@@ -112,6 +145,27 @@ function getLegendItems(layer: Layer, stations: StationData[]) {
         { color: '#f97316', label: '2–4 weeks' },
         { color: '#facc15', label: '1–2 months' },
         { color: '#4ade80', label: '2+ months' },
+      ]
+    case 'season_rain':
+      return [
+        { color: '#f2762a', label: 'Under 50 mm' },
+        { color: '#facc15', label: '50–100 mm' },
+        { color: '#4ade80', label: '100–200 mm' },
+        { color: '#60a5fa', label: '200+ mm' },
+      ]
+    case 'nitrogen':
+      return [
+        { color: '#ef4444', label: 'Under 40 kg N/ha' },
+        { color: '#f97316', label: '40–80 kg N/ha' },
+        { color: '#facc15', label: '80–120 kg N/ha' },
+        { color: '#4ade80', label: '120+ kg N/ha' },
+      ]
+    case 'phosphorus':
+      return [
+        { color: '#ef4444', label: 'Deficient' },
+        { color: '#f97316', label: 'Marginal' },
+        { color: '#4ade80', label: 'Adequate' },
+        { color: '#60a5fa', label: 'High' },
       ]
   }
 }
