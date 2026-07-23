@@ -14,6 +14,8 @@ model agronomist_notes {
   note              String
   visible_to_farmer Boolean? @default(true)
   created_at        DateTime @default(now()) @db.Timestamptz(6)
+  season_year       Int?
+  notes             String?
   stations          stations @relation(fields: [station_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([station_id], map: "idx_an_station")
