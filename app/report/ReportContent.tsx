@@ -158,7 +158,7 @@ export default function ReportContent({ data, stationId, seasonYear }: { data: R
 
         <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
           {([
-            ['CROP', data.station.cropName ? `${data.station.cropName}${data.station.variety ? \` — ${data.station.variety}\` : ''}` : '—', 'PLANTED', data.station.plantedDate ?? '—'],
+            ['CROP', data.station.cropName ? (data.station.cropName + (data.station.variety ? ' — ' + data.station.variety : '')) : '—', 'PLANTED', data.station.plantedDate ?? '—'],
             ['PADDOCK AREA', data.station.hectares ? `${data.station.hectares} ha` : '—', 'TARGET YIELD', data.station.targetYield ? `${data.station.targetYield} t/ha` : '—'],
             ['SOIL TYPE', data.station.soilType ?? '—', 'GROWTH STAGE', data.station.growthStage ?? '—'],
           ] as [string,string,string,string][]).map(([l1, v1, l2, v2], i) => (
