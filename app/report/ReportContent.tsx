@@ -76,7 +76,7 @@ function MiniBarChart({ data }: { data: { label: string; station: number; histor
           <rect x={4} y={h - (d.station / max * h)} width={13} height={d.station / max * h} fill={GREEN} />
           <rect x={20} y={h - (d.historical / max * h)} width={13} height={d.historical / max * h} fill="#d1d5db" />
           <text x={18} y={h + 14} fontSize="9" fill={GREY} textAnchor="middle" fontFamily="sans-serif">{d.label}</text>
-          <text x={10} y={h - (d.station / max * h) - 2} fontSize="8" fill={GREEN} textAnchor="middle" fontFamily="sans-serif">{d.station}</text>
+          {d.station > 0 && <text x={10} y={h - (d.station / max * h) - 2} fontSize="8" fill={GREEN} textAnchor="middle" fontFamily="sans-serif">{d.station}</text>}
         </g>
       ))}
       <text x={0} y={h + 26} fontSize="9" fill={GREEN} fontFamily="sans-serif">&#9632; Season</text>
@@ -97,14 +97,20 @@ function TempChart({ data }: { data: { date: string; max: number | null; avg: nu
   const y = (v: number) => padT + (1 - (v - minV) / (maxV - minV)) * (h - padT - padB)
   const line = (key: 'max' | 'avg' | 'min') =>
     filtered.map((d, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(0)} ${y(d[key] ?? 0).toFixed(0)}`).join(' ')
-  const ticks = filtered.filter((_, i) => i % Math.floor(filtered.length / 4) === 0)
+  const seenMonths = new Set<string>()
+  const ticks = filtered.filter(d => {
+    const m = new Date(d.date).toLocaleDateString('en-AU', { month: 'short' })
+    if (seenMonths.has(m)) return false
+    seenMonths.add(m)
+    return true
+  })
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 'auto' }}>
       <path d={line('max')} fill="none" stroke={RED} strokeWidth={1.5} />
       <path d={line('avg')} fill="none" stroke={ORANGE} strokeWidth={1.5} />
       <path d={line('min')} fill="none" stroke={BLUE} strokeWidth={1.5} />
       {[minV, (minV + maxV) / 2, maxV].map((v, i) => (
-        <text key={i} x={padL - 3} y={y(v) + 3} fontSize="8" fill={GREY} textAnchor="end" fontFamily="sans-serif">{Math.round(v)}deg</text>
+        <text key={i} x={padL - 3} y={y(v) + 3} fontSize="8" fill={GREY} textAnchor="end" fontFamily="sans-serif">{Math.round(v)}&#176;</text>
       ))}
       {ticks.map((d, i) => (
         <text key={i} x={x(filtered.indexOf(d))} y={h - 4} fontSize="8" fill={GREY} textAnchor="middle" fontFamily="sans-serif">
