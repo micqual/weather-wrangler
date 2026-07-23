@@ -145,7 +145,7 @@ export default function ReportContent({ data, stationId, seasonYear }: { data: R
       <div style={{ paddingTop: 32, marginBottom: 48 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <img src="/Logo.png" alt="Weather Wrangler" style={{ width: 56, height: 56, objectFit: 'contain' }} />
+            <img src="/Logo.png" alt="Weather Wrangler" style={{ width: 80, height: 80, objectFit: 'contain' }} />
             <div>
               <div style={{ fontSize: 11, color: GREY, textTransform: 'uppercase', letterSpacing: 1.5, fontFamily: 'sans-serif' }}>Weather Wrangler</div>
               <div style={{ fontSize: 16, fontWeight: 600, fontFamily: 'sans-serif' }}>Agronomy Report</div>
