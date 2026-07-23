@@ -248,14 +248,14 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       <div className="no-print" style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', background: '#fff', position: 'sticky', top: 0, zIndex: 10 }}>
         <Link href="/" style={{ color: '#666', fontSize: 13, textDecoration: 'none' }}>← My Paddocks</Link>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          {stations.length > 1 && (
-            <select defaultValue={selectedStationId} onChange={e => window.location.href = `/report?station=${e.target.value}&year=${reportYear}`} style={{ fontSize: 13, padding: '4px 8px', border: '1px solid #ddd', borderRadius: 6 }}>
-              {stations.map(st => <option key={st.id} value={st.id}>{st.paddock_name ?? st.id}</option>)}
-            </select>
-          )}
-          <select defaultValue={reportYear} onChange={e => window.location.href = `/report?station=${selectedStationId}&year=${e.target.value}`} style={{ fontSize: 13, padding: '4px 8px', border: '1px solid #ddd', borderRadius: 6 }}>
-            {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y} season</option>)}
-          </select>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {stations.length > 1 && stations.map(st => (
+              <a key={st.id} href={`/report?station=${st.id}&year=${reportYear}`} style={{ fontSize: 12, padding: '4px 10px', border: `1px solid ${st.id === selectedStationId ? '#7c5cbf' : '#ddd'}`, borderRadius: 6, textDecoration: 'none', color: st.id === selectedStationId ? '#7c5cbf' : '#666' }}>{st.paddock_name ?? st.id}</a>
+            ))}
+            {[2024, 2025, 2026, 2027].map(y => (
+              <a key={y} href={`/report?station=${selectedStationId}&year=${y}`} style={{ fontSize: 12, padding: '4px 10px', border: `1px solid ${y === reportYear ? '#7c5cbf' : '#ddd'}`, borderRadius: 6, textDecoration: 'none', color: y === reportYear ? '#7c5cbf' : '#666' }}>{y}</a>
+            ))}
+          </div>
           <PrintButton />
         </div>
       </div>
