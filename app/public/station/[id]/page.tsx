@@ -53,8 +53,8 @@ export default async function PublicStationPage({ params }: { params: Promise<{ 
       <div style={{ width: '100%', maxWidth: 420 }}>
 
         {/* Header */}
-        <div style={{ background: '#271b38', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #3f2c57' }}>
-          <img src="/Logo.png" alt="Weather Wrangler" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+        <div style={{ background: '#271b38', padding: '20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, borderBottom: '1px solid #3f2c57', textAlign: 'center' }}>
+          <img src="/Logo.png" alt="Weather Wrangler" style={{ width: 64, height: 64, objectFit: 'contain' }} />
           <div>
             <div style={{ fontSize: 10, color: '#a896c0', letterSpacing: 1, textTransform: 'uppercase' }}>Weather Wrangler</div>
             <div style={{ fontSize: 13, fontWeight: 500 }}>Live station data</div>
