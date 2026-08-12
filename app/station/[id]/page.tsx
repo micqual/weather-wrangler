@@ -21,7 +21,11 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
   const session = await auth()
   if (!session?.user) redirect('/login')
 
-  const station = await prisma.stations.findFirst({ where: { id, farmer_id: (session.user as any).id }, include: { crop_types: true } })
+  const isAdmin = (session.user as any).email === 'mdpankhurst@gmail.com'
+  const station = await prisma.stations.findFirst({
+    where: isAdmin ? { id } : { id, farmer_id: (session.user as any).id },
+    include: { crop_types: true }
+  })
   if (!station) notFound()
 
   const [rawCropTypes, zones, nitrogenTests, phosphorusTests, nitrogenApplications, nitrogenProducts, polygons, irrigationLogs, manualRain, cropRotation] = await Promise.all([

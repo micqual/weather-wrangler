@@ -128,13 +128,14 @@ export default async function AdminPage() {
                 {stations.filter(s => s.farm_id === f.id).map(s => {
                   const crop = s.crop_type_id ? cropById.get(s.crop_type_id) : null
                   return (
-                    <div key={s.id} style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
+                    <div key={s.id} style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       {s.paddock_name || s.id}
                       {(s as any).ws90_serial ? ` · S/N: ${(s as any).ws90_serial}` : ''}
                       {crop ? ` · ${crop.crop_name} (${crop.variety})` : ''}
                       {s.hectares ? ` · ${s.hectares} ha` : ''}
                       {s.planted_date ? ` · planted ${new Date(s.planted_date).toLocaleDateString('en-AU')}` : ''}
                       {s.latitude && s.longitude ? ` · ${s.latitude.toFixed(4)}, ${s.longitude.toFixed(4)}` : ''}
+                    <a href={`/station/${s.id}`} style={{ fontSize: 11, color: 'var(--orange)', textDecoration: 'none', flexShrink: 0, marginLeft: 8 }}>View →</a>
                     </div>
                   )
                 })}
