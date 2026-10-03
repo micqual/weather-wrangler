@@ -37,7 +37,7 @@ export default async function AdminPage() {
   const assigned = stations.filter(s => s.farm_id)
   const cropById = new Map(cropTypes.map(c => [c.id, c]))
   const stationsWithGps = stations.filter(s => s.latitude && s.longitude).length
-  const safeFarmers = farmers.map(f => ({ id: f.id, name: f.name, email: f.email }))
+  const safeFarmers = farmers.map(f => ({ id: f.id, name: f.name, email: f.email, tier: (f as any).tier ?? null }))
   const safeFarms = farms.map(f => ({ ...f, farmers: { name: f.farmers.name } }))
   const safeCropTypes = cropTypes.map(c => ({
     id: c.id, crop_name: c.crop_name, variety: c.variety,
@@ -172,12 +172,15 @@ export default async function AdminPage() {
             </form>
           </CollapsibleCard>
 
-          <CollapsibleCard title="View as farmer" hint="Log in as a farmer to see their dashboard.">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {farmers.map(f => (
-                <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
-                  <span>{f.name ?? f.email}</span>
-                  <a href={`/api/admin-impersonate?farmer_id=${f.id}`} style={{ color: 'var(--orange)', fontSize: 12, textDecoration: 'none', border: '1px solid var(--orange)', borderRadius: 6, padding: '4px 10px' }}>View as →</a>
+          <CollapsibleCard title="View as farmer" hint="See the dashboard exactly as a farmer sees it.">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {safeFarmers.map(f => (
+                <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+                  <div>
+                    <span style={{ fontWeight: 600 }}>{f.name ?? f.email}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 8 }}>{f.email}</span>
+                  </div>
+                  <a href={`/api/admin-impersonate?farmer_id=${f.id}`} style={{ color: 'var(--orange)', fontSize: 12, textDecoration: 'none', border: '1px solid var(--orange)', borderRadius: 6, padding: '4px 10px', whiteSpace: 'nowrap' }}>View as →</a>
                 </div>
               ))}
             </div>
