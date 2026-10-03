@@ -5,28 +5,6 @@ import { prisma } from '@/lib/prisma'
 import { cookies } from 'next/headers'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  callbacks: {
-    async session({ session, token }) {
-      // Check for admin impersonation cookie
-      try {
-        const cookieStore = await cookies()
-        const impersonateId = cookieStore.get('admin_impersonate')?.value
-        if (impersonateId && (session.user as any)?.email === 'mdpankhurst@gmail.com') {
-          const farmer = await prisma.farmers.findUnique({
-            where: { id: impersonateId },
-            select: { id: true, email: true, name: true },
-          })
-          if (farmer) {
-            ;(session.user as any).id = farmer.id
-            ;(session.user as any).email = farmer.email
-            ;(session.user as any).name = farmer.name
-            ;(session.user as any).impersonating = true
-          }
-        }
-      } catch {}
-      return session
-    },
-  },
   providers: [
     Credentials({
       credentials: { email: {}, password: {} },
@@ -53,6 +31,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) (session.user as any).id = token.id
+      // Check for admin impersonation cookie
+      try {
+        const cookieStore = await cookies()
+        const impersonateId = cookieStore.get('admin_impersonate')?.value
+        if (impersonateId && (session.user as any)?.email === 'mdpankhurst@gmail.com') {
+          const farmer = await prisma.farmers.findUnique({
+            where: { id: impersonateId },
+            select: { id: true, email: true, name: true },
+          })
+          if (farmer) {
+            ;(session.user as any).id = farmer.id
+            ;(session.user as any).email = farmer.email
+            ;(session.user as any).name = farmer.name
+            ;(session.user as any).impersonating = true
+          }
+        }
+      } catch {}
       return session
     },
   },
