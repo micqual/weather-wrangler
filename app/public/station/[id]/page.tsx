@@ -93,7 +93,7 @@ export default async function PublicStationPage({ params }: { params: Promise<{ 
           </div>
           <div style={{ background: '#271b38', border: '1px solid #3f2c57', borderRadius: 12, padding: 14 }}>
             <div style={{ fontSize: 28, fontWeight: 700 }}>{dailyRain != null ? `${dailyRain.toFixed(1)}` : '—'}<span style={{ fontSize: 14 }}> mm</span></div>
-            <div style={{ fontSize: 10, color: '#a896c0', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Rain today</div>
+            <div style={{ fontSize: 10, color: '#a896c0', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Since 9am</div>
           </div>
         </div>
 
