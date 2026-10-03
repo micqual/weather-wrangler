@@ -54,6 +54,7 @@ function getMelbourneMidnightUTC(): Date {
   const [year, month, day] = melbDateStr.split('-').map(Number)
   
   // Try each possible UTC hour for midnight Melbourne (will be either 13 or 14 depending on DST)
+  // 9am Melbourne = midnight UTC + 9 hours back = 23:00 UTC previous day in summer, 22:00 in winter
   for (const utcHour of [13, 14]) {
     const candidate = new Date(Date.UTC(year, month - 1, day - 1, utcHour, 0, 0, 0))
     const melbHour = parseInt(
@@ -137,8 +138,29 @@ export async function getPostApplicationWeather(
   return { avgTempC, avgHumidity, daysToRain, totalRainMm }
 }
 
+function getMelbourne9amUTC(): Date {
+  // 9am Melbourne AEST = 23:00 UTC previous day
+  // 9am Melbourne AEDT = 22:00 UTC previous day
+  const now = new Date()
+  const melbourneNow = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Melbourne' }))
+  const melbourneHour = melbourneNow.getHours()
+  
+  // If it's before 9am Melbourne time, use yesterday's 9am
+  // If it's after 9am Melbourne time, use today's 9am
+  const dayOffset = melbourneHour < 9 ? 1 : 0
+  
+  const melbourne9am = new Date(melbourneNow)
+  melbourne9am.setHours(9, 0, 0, 0)
+  if (dayOffset) melbourne9am.setDate(melbourne9am.getDate() - 1)
+  
+  // Convert back to UTC
+  const utcTime = new Date(melbourne9am.toLocaleString('en-US', { timeZone: 'UTC' }))
+  const offset = melbourne9am.getTime() - new Date(melbourne9am.toLocaleString('en-US', { timeZone: 'Australia/Melbourne' })).getTime()
+  return new Date(melbourne9am.getTime() - offset)
+}
+
 export async function getDailyRainWithRate(stationId: string, prisma: any): Promise<{ rainMm: number | null; avgRateMMH: number | null }> {
-  const midnightUTC = getMelbourneMidnightUTC()
+  const midnightUTC = getMelbourne9amUTC() // 9am–9am BOM standard
 
   const [firstToday, latest, todayReadings] = await Promise.all([
     prisma.weather_readings.findFirst({
