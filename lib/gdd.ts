@@ -45,26 +45,22 @@ export async function getDailyAvgTemps(stationId: string, since: Date, prisma: a
 }
 
 function getMelbourneMidnightUTC(): Date {
-  // Get today's date in Melbourne time as a string e.g. "2026-07-01"
+  // Get today's date in Melbourne time
   const melbDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Melbourne' })
-  
-  // Parse midnight Melbourne by creating a date at noon UTC on that date,
-  // then finding what UTC time corresponds to midnight Melbourne
-  // We do this by formatting a known UTC time in Melbourne TZ and working backwards
   const [year, month, day] = melbDateStr.split('-').map(Number)
-  
-  // Try each possible UTC hour for midnight Melbourne (will be either 13 or 14 depending on DST)
-  // 9am Melbourne = midnight UTC + 9 hours back = 23:00 UTC previous day in summer, 22:00 in winter
-  for (const utcHour of [13, 14]) {
+
+  // Find UTC time that corresponds to 9am Melbourne (BOM standard)
+  // 9am AEST = 23:00 UTC previous day, 9am AEDT = 22:00 UTC previous day
+  for (const utcHour of [22, 23]) {
     const candidate = new Date(Date.UTC(year, month - 1, day - 1, utcHour, 0, 0, 0))
     const melbHour = parseInt(
       candidate.toLocaleTimeString('en-AU', { timeZone: 'Australia/Melbourne', hour: '2-digit', hour12: false })
     )
-    if (melbHour === 0) return candidate
+    if (melbHour === 9) return candidate
   }
-  
-  // Fallback to UTC+10 (AEST)
-  return new Date(Date.UTC(year, month - 1, day - 1, 14, 0, 0, 0))
+
+  // Fallback to UTC+10 (AEST) 9am = 23:00 UTC prev day
+  return new Date(Date.UTC(year, month - 1, day - 1, 23, 0, 0, 0))
 }
 
 export async function getDailyRain(stationId: string, prisma: any): Promise<number | null> {
