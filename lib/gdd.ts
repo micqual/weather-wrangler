@@ -160,7 +160,7 @@ function getMelbourne9amUTC(): Date {
 }
 
 export async function getDailyRainWithRate(stationId: string, prisma: any): Promise<{ rainMm: number | null; avgRateMMH: number | null }> {
-  const midnightUTC = getMelbourne9amUTC() // 9am–9am BOM standard
+  const midnightUTC = getMelbourneMidnightUTC()
 
   const [firstToday, latest, todayReadings] = await Promise.all([
     prisma.weather_readings.findFirst({
