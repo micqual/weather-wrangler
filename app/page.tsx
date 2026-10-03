@@ -69,6 +69,8 @@ export default async function Dashboard() {
   if (!session?.user) redirect('/login')
   const isAdmin = (session.user as any).email === 'mdpankhurst@gmail.com'
 
+  const isImpersonating = (session.user as any)?.impersonating === true
+
   const farmer = await prisma.farmers.findUnique({
     where: { id: (session.user as any).id },
     select: { tier: true, subscription_expires_at: true },
@@ -102,6 +104,12 @@ export default async function Dashboard() {
         <NavMenu canPro={canAccessFeature(subStatus, 'pro')} isAdmin={isAdmin} />
       </div>
 
+      {isImpersonating && (
+        <div style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid #f97316', borderRadius: 10, padding: '10px 16px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+          <span style={{ color: '#f97316' }}>👁 Viewing as farmer — <strong>{(session.user as any)?.name ?? (session.user as any)?.email}</strong></span>
+          <a href="/api/admin-stop-impersonate" style={{ color: '#f97316', fontSize: 12, textDecoration: 'none', border: '1px solid #f97316', borderRadius: 6, padding: '4px 10px' }}>Stop viewing</a>
+        </div>
+      )}
       <SubscriptionBanner
         daysUntilExpiry={subStatus.daysUntilExpiry}
         daysOverdue={subStatus.daysOverdue}

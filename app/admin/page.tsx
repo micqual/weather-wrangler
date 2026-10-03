@@ -172,6 +172,17 @@ export default async function AdminPage() {
             </form>
           </CollapsibleCard>
 
+          <CollapsibleCard title="View as farmer" hint="Log in as a farmer to see their dashboard.">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {farmers.map(f => (
+                <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+                  <span>{f.name ?? f.email}</span>
+                  <a href={`/api/admin-impersonate?farmer_id=${f.id}`} style={{ color: 'var(--orange)', fontSize: 12, textDecoration: 'none', border: '1px solid var(--orange)', borderRadius: 6, padding: '4px 10px' }}>View as →</a>
+                </div>
+              ))}
+            </div>
+          </CollapsibleCard>
+
           <CollapsibleCard title="Farmer subscriptions" hint="Set tier (Base/Mid/Pro), expiry date and payment notes." defaultOpen={true}>
             <FarmerSubscriptionForm farmers={farmers.map(f => ({
               id: f.id, name: f.name, email: f.email, tier: f.tier,
