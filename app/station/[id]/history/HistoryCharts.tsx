@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useEffect, useRef } from 'react'
+import { useMemo, useEffect, useRef, useState } from 'react'
 
 type Point = { t: number; v: number }
 
@@ -19,6 +19,9 @@ function HistoryChart({
   barChart?: boolean
   chartRef?: React.RefObject<HTMLDivElement | null>
 }) {
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; value: string; time: string } | null>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+
   const chart = useMemo(() => {
     if (points.length < 2) return null
     const width = 800
@@ -58,7 +61,25 @@ function HistoryChart({
   return (
     <div ref={chartRef} className="card" style={{ padding: 16, marginBottom: 16, scrollMarginTop: 20 }}>
       <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, fontWeight: 500 }}>{label}</div>
-      <svg viewBox={`0 0 ${chart.width} ${chart.height}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${chart.width} ${chart.height}`}
+        style={{ width: '100%', height: 'auto', display: 'block', cursor: 'crosshair' }}
+        onMouseMove={e => {
+          if (!svgRef.current || !chart) return
+          const rect = svgRef.current.getBoundingClientRect()
+          const svgX = (e.clientX - rect.left) / rect.width * chart.width
+          const svgY = (e.clientY - rect.top) / rect.height * chart.height
+          if (svgX < chart.padL || svgX > chart.width - chart.padR) { setTooltip(null); return }
+          const frac = (svgX - chart.padL) / (chart.width - chart.padL - chart.padR)
+          const idx = Math.round(frac * (points.length - 1))
+          const pt = points[Math.max(0, Math.min(idx, points.length - 1))]
+          if (!pt) return
+          const time = new Date(pt.t).toLocaleString('en-AU', { timeZone: 'Australia/Melbourne', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false })
+          setTooltip({ x: svgX, y: svgY, value: fmt(pt.v), time })
+        }}
+        onMouseLeave={() => setTooltip(null)}
+      >
         {chart.yTicks.map((t, i) => (
           <g key={i}>
             <line x1={chart.padL} x2={chart.width - chart.padR} y1={t.y} y2={t.y} stroke="var(--border)" strokeWidth={1} />
@@ -79,6 +100,36 @@ function HistoryChart({
           })
         ) : (
           <path d={(chart as any).pathD} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" />
+        )}
+        {tooltip && (
+          <g>
+            <line x1={tooltip.x} x2={tooltip.x} y1={chart.padT} y2={chart.height - chart.padB} stroke="var(--border)" strokeWidth={1} strokeDasharray="3,3" />
+            <rect
+              x={tooltip.x > chart.width / 2 ? tooltip.x - 120 : tooltip.x + 8}
+              y={chart.padT}
+              width={112}
+              height={36}
+              rx={4}
+              fill="var(--surface)"
+              stroke="var(--border)"
+              strokeWidth={0.5}
+            />
+            <text
+              x={tooltip.x > chart.width / 2 ? tooltip.x - 64 : tooltip.x + 64}
+              y={chart.padT + 14}
+              fontSize="11"
+              fill="var(--text)"
+              textAnchor="middle"
+              fontWeight="600"
+            >{tooltip.value}</text>
+            <text
+              x={tooltip.x > chart.width / 2 ? tooltip.x - 64 : tooltip.x + 64}
+              y={chart.padT + 28}
+              fontSize="9"
+              fill="var(--text-muted)"
+              textAnchor="middle"
+            >{tooltip.time}</text>
+          </g>
         )}
       </svg>
     </div>
