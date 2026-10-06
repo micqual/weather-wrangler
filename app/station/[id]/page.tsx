@@ -58,7 +58,10 @@ export default async function StationDetails({ params }: { params: Promise<{ id:
 
   return (
     <div style={{ minHeight: '100vh', padding: '32px 24px', maxWidth: 880, margin: '0 auto' }}>
-      <Link href="/" style={{ color: 'var(--text-muted)', fontSize: 14, textDecoration: 'none' }}>← Back to paddocks</Link>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <Link href="/" style={{ color: 'var(--text-muted)', fontSize: 14, textDecoration: 'none' }}>← Back to paddocks</Link>
+        <Link href={`/station/${id}/rain`} style={{ color: '#60a5fa', fontSize: 13, textDecoration: 'none', border: '1px solid #60a5fa', borderRadius: 8, padding: '4px 12px' }}>🌧 Rain</Link>
+      </div>
       {/* Soil test alerts */}
       {(() => {
         const alerts: { msg: string; color: string }[] = []
