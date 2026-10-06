@@ -103,17 +103,13 @@ export default async function RainPage({ params }: { params: Promise<{ id: strin
   // Rain events (days with ≥1mm)
   const rainEvents = seasonDays.filter(d => d.rain >= 1).reverse().slice(0, 20)
 
-  // BOM historical for comparison
+  // BOM historical for comparison — use all daily rain data regardless of planted date
   let bomMonthly: { month: string; bom: number; station: number }[] = []
   if (station.latitude && station.longitude) {
     try {
-      const [bomData, normals] = await Promise.all([
-        fetchBOMHistorical(station.latitude, station.longitude,
-          new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA'),
-          new Date().toLocaleDateString('en-CA')
-        ),
-        fetchClimateNormals(station.latitude, station.longitude),
-      ])
+      const bomStart = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA')
+      const bomEnd = new Date().toLocaleDateString('en-CA')
+      const bomData = await fetchBOMHistorical(station.latitude, station.longitude, bomStart, bomEnd)
 
       const monthMap = new Map<string, number>()
       for (const d of bomData) {
@@ -121,12 +117,15 @@ export default async function RainPage({ params }: { params: Promise<{ id: strin
         monthMap.set(m, (monthMap.get(m) ?? 0) + (d.precipitation ?? 0))
       }
 
+      // Use all daily rain data (not just season) for station comparison
+      const allDailyMap = new Map<string, number>()
+      for (const d of days) allDailyMap.set(d.date, d.rain)
+      for (const d of seasonDays) allDailyMap.set(d.date, d.rain)
+
       for (const [m, bom] of monthMap.entries()) {
-        const monthNum = parseInt(m.split('-')[1])
-        const normal = normals.find((n: any) => n.month === monthNum)?.avgRainfallMm ?? 0
-        const stationTotal = seasonDays
-          .filter(d => d.date.startsWith(m))
-          .reduce((s, d) => s + d.rain, 0)
+        const stationTotal = [...allDailyMap.entries()]
+          .filter(([date]) => date.startsWith(m))
+          .reduce((s, [, rain]) => s + rain, 0)
         bomMonthly.push({
           month: new Date(m + '-01').toLocaleDateString('en-AU', { month: 'short', year: '2-digit' }),
           bom: Math.round(bom * 10) / 10,
