@@ -140,7 +140,7 @@ export default async function RainPage({ params }: { params: Promise<{ id: strin
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
           <Link href={`/station/${id}`} style={{ color: 'var(--text-muted)', fontSize: 13, textDecoration: 'none' }}>← {station.paddock_name ?? id}</Link>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: '4px 0 0' }}>🌧 Rain</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: '4px 0 0' }}>Rain</h1>
         </div>
       </div>
 
