@@ -1,4 +1,5 @@
 import { auth } from '@/auth'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
@@ -69,7 +70,22 @@ export default async function Dashboard() {
   if (!session?.user) redirect('/login')
   const isAdmin = (session.user as any).email === 'mdpankhurst@gmail.com'
 
-  const isImpersonating = (session.user as any)?.impersonating === true
+  // Read impersonation cookie directly — more reliable than JWT token approach
+  const cookieStore = await cookies()
+  const impersonateId = cookieStore.get('admin_impersonate')?.value
+  const isImpersonating = isAdmin && !!impersonateId
+
+  // Override session user with impersonated farmer
+  if (isAdmin && impersonateId) {
+    const impersonatedFarmer = await prisma.farmers.findUnique({
+      where: { id: impersonateId },
+      select: { id: true, email: true, name: true },
+    })
+    if (impersonatedFarmer) {
+      ;(session.user as any).id = impersonatedFarmer.id
+      ;(session.user as any).name = impersonatedFarmer.name
+    }
+  }
 
   const farmer = await prisma.farmers.findUnique({
     where: { id: (session.user as any).id },
