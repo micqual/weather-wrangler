@@ -252,22 +252,25 @@ model stations {
 }
 
 model weather_readings {
-  id            BigInt    @id @default(autoincrement())
-  created_at    DateTime? @default(now()) @db.Timestamptz(6)
-  station_id    String?
-  temperature_c Float?
-  humidity      Int?
-  wind_dir_deg  Int?
-  wind_avg_ms   Float?
-  wind_max_ms   Float?
-  rain_mm       Float?
-  uvi           Float?
-  light_lux     Float?
-  battery_mv    Int?
-  rssi          Int?
-  esp_battery_v Float?
-  solar_v       Float?
-  stations      stations? @relation(fields: [station_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id             BigInt    @id @default(autoincrement())
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  station_id     String?
+  temperature_c  Float?
+  humidity       Int?
+  wind_dir_deg   Int?
+  wind_avg_ms    Float?
+  wind_max_ms    Float?
+  rain_mm        Float?
+  uvi            Float?
+  light_lux      Float?
+  battery_mv     Int?
+  rssi           Int?
+  esp_battery_v  Float?
+  solar_v        Float?
+  ws90_device_id Int?
+  battery_ok     Int?
+  firmware_v     String?
+  stations       stations? @relation(fields: [station_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model farms {
@@ -360,4 +363,12 @@ model crop_rotation {
   zone_id      String?   @db.Uuid
   stations     stations  @relation(fields: [station_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   zones        zones?    @relation(fields: [zone_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model station_paddocks {
+  station_id            String
+  paddock_name          String
+  salesforce_paddock_id String
+
+  @@id([station_id, salesforce_paddock_id])
 }
