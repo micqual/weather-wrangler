@@ -65,20 +65,19 @@ function readingAge(createdAt: Date | null) {
   return { text: `${formatted} · ${relative}`, color, dot }
 }
 
-export default async function Dashboard() {
+export default async function Dashboard({ searchParams }: { searchParams: Promise<{ viewAs?: string }> }) {
   const session = await auth()
   if (!session?.user) redirect('/login')
   const isAdmin = (session.user as any).email === 'mdpankhurst@gmail.com'
 
-  // Read impersonation cookie directly — more reliable than JWT token approach
-  const cookieStore = await cookies()
-  const impersonateId = cookieStore.get('admin_impersonate')?.value
-  const isImpersonating = isAdmin && !!impersonateId
+  // Support viewAs query param for admin impersonation
+  const sp = await searchParams
+  const viewAsId = isAdmin ? sp.viewAs : undefined
+  const isImpersonating = isAdmin && !!viewAsId
 
-  // Override session user with impersonated farmer
-  if (isAdmin && impersonateId) {
+  if (isAdmin && viewAsId) {
     const impersonatedFarmer = await prisma.farmers.findUnique({
-      where: { id: impersonateId },
+      where: { id: viewAsId },
       select: { id: true, email: true, name: true },
     })
     if (impersonatedFarmer) {
@@ -123,7 +122,7 @@ export default async function Dashboard() {
       {isImpersonating && (
         <div style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid #f97316', borderRadius: 10, padding: '10px 16px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
           <span style={{ color: '#f97316' }}>👁 Viewing as farmer — <strong>{(session.user as any)?.name ?? (session.user as any)?.email}</strong></span>
-          <a href="/api/admin-stop-impersonate" style={{ color: '#f97316', fontSize: 12, textDecoration: 'none', border: '1px solid #f97316', borderRadius: 6, padding: '4px 10px' }}>Stop viewing</a>
+          <a href="/admin" style={{ color: '#f97316', fontSize: 12, textDecoration: 'none', border: '1px solid #f97316', borderRadius: 6, padding: '4px 10px' }}>Stop viewing</a>
         </div>
       )}
       <SubscriptionBanner
