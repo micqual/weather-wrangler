@@ -3,6 +3,9 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { createStation, createFarmer, createFarm } from './actions'
 import PaddockForm from './PaddockForm'
+import CreatePaddockForm from './CreatePaddockForm'
+import LinkStationForm from './LinkStationForm'
+import ShareStationForm from './ShareStationForm'
 import ReplaceStationForm from './ReplaceStationForm'
 import ResetPasswordForm from './ResetPasswordForm'
 import EditStationForm from './EditStationForm'
@@ -34,6 +37,11 @@ export default async function AdminPage() {
   ])
 
   const unassigned = stations.filter(s => !s.farm_id)
+  const paddocks = await prisma.paddocks.findMany({
+    include: { farms: true },
+    orderBy: { created_at: 'desc' },
+  })
+  const paddockList = paddocks.map(p => ({ id: p.id, paddock_name: p.paddock_name, farm_name: (p.farms as any)?.name ?? '—' }))
   const assigned = stations.filter(s => s.farm_id)
   const cropById = new Map(cropTypes.map(c => [c.id, c]))
   const stationsWithGps = stations.filter(s => s.latitude && s.longitude).length
@@ -108,8 +116,16 @@ export default async function AdminPage() {
             <EditStationForm stations={stations} />
           </CollapsibleCard>
 
-          <CollapsibleCard title="Add a paddock" hint="Links a registered station to a farm.">
-            <PaddockForm stations={stations} farms={safeFarms} />
+          <CollapsibleCard title="Create paddock" hint="Create a new paddock without requiring a physical station.">
+            <CreatePaddockForm farms={safeFarms} />
+          </CollapsibleCard>
+
+          <CollapsibleCard title="Link station to paddock" hint="Connect a physical WS90 station to an existing paddock.">
+            <LinkStationForm paddocks={paddockList} stations={stations} />
+          </CollapsibleCard>
+
+          <CollapsibleCard title="Share station data" hint="Let a paddock use weather readings from a nearby station.">
+            <ShareStationForm paddocks={paddockList} stations={stations} />
           </CollapsibleCard>
 
           <CollapsibleCard title="Replace a station" hint="Stolen or broken — moves the paddock to a new device.">

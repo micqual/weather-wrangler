@@ -230,3 +230,93 @@ export async function updateFarmerSubscription(prevState: ActionState, formData:
   revalidatePath('/admin')
   return { success: 'Subscription updated.' }
 }
+
+export async function createPaddockOnly(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const farm_id = formData.get('farm_id') as string
+  const paddock_name = formData.get('paddock_name') as string
+  const latitude = formData.get('latitude') as string
+  const longitude = formData.get('longitude') as string
+  const hectares = formData.get('hectares') as string
+  const soil_type = formData.get('soil_type') as string
+  const elevation_m = formData.get('elevation_m') as string
+
+  if (!farm_id || !paddock_name) return { error: 'Farm and paddock name are required.' }
+
+  const farm = await prisma.farms.findUnique({ where: { id: farm_id } })
+  if (!farm) return { error: 'Farm not found.' }
+
+  await prisma.paddocks.create({
+    data: {
+      farm_id,
+      farmer_id: farm.farmer_id,
+      paddock_name,
+      latitude: latitude ? parseFloat(latitude) : null,
+      longitude: longitude ? parseFloat(longitude) : null,
+      hectares: hectares ? parseFloat(hectares) : null,
+      soil_type: soil_type || null,
+      elevation_m: elevation_m ? parseFloat(elevation_m) : null,
+    },
+  })
+
+  revalidatePath('/admin')
+  return { success: `Paddock "${paddock_name}" created.` }
+}
+
+export async function linkStationToPaddock(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const paddock_id = formData.get('paddock_id') as string
+  const station_id = formData.get('station_id') as string
+
+  if (!paddock_id || !station_id) return { error: 'Select both a paddock and a station.' }
+
+  const paddock = await prisma.paddocks.findUnique({ where: { id: paddock_id } })
+  if (!paddock) return { error: 'Paddock not found.' }
+
+  // Update station to link to this paddock's farm
+  await prisma.stations.update({
+    where: { id: station_id },
+    data: {
+      farm_id: paddock.farm_id,
+      farmer_id: paddock.farmer_id,
+      paddock_name: paddock.paddock_name,
+    },
+  })
+
+  revalidatePath('/admin')
+  return { success: `Station ${station_id} linked to ${paddock.paddock_name}.` }
+}
+
+export async function shareStation(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const paddock_id = formData.get('paddock_id') as string
+  const source_station_id = formData.get('source_station_id') as string
+
+  if (!paddock_id || !source_station_id) return { error: 'Select both a paddock and a source station.' }
+
+  const paddock = await prisma.paddocks.findUnique({ where: { id: paddock_id } })
+  if (!paddock) return { error: 'Paddock not found.' }
+
+  const source = await prisma.stations.findUnique({ where: { id: source_station_id } })
+  if (!source) return { error: 'Source station not found.' }
+
+  // Create a virtual station for this paddock that borrows from the source
+  const virtualId = `virtual_${paddock_id.slice(0, 8)}`
+  await prisma.stations.upsert({
+    where: { id: virtualId },
+    create: {
+      id: virtualId,
+      farm_id: paddock.farm_id,
+      farmer_id: paddock.farmer_id,
+      paddock_name: paddock.paddock_name,
+      latitude: paddock.latitude,
+      longitude: paddock.longitude,
+      hectares: paddock.hectares,
+      soil_type: paddock.soil_type,
+      borrow_station_id: source_station_id,
+    },
+    update: {
+      borrow_station_id: source_station_id,
+    },
+  })
+
+  revalidatePath('/admin')
+  return { success: `${paddock.paddock_name} will now share weather data from ${source_station_id}.` }
+}
