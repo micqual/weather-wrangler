@@ -310,10 +310,10 @@ export async function shareStation(prevState: ActionState, formData: FormData): 
       longitude: paddock.longitude != null ? parseFloat(String(paddock.longitude)) : null,
       hectares: paddock.hectares != null ? parseFloat(String(paddock.hectares)) : null,
       soil_type: paddock.soil_type,
-      borrow_station_id: source_station_id,
+      borrowed_station_id: source_station_id,
     },
     update: {
-      borrow_station_id: source_station_id,
+      borrowed_station_id: source_station_id,
     },
   })
 
