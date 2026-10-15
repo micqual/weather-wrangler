@@ -10,7 +10,6 @@ import ShareStationForm from './ShareStationForm'
 import ReplaceStationForm from './ReplaceStationForm'
 import ResetPasswordForm from './ResetPasswordForm'
 import EditStationForm from './EditStationForm'
-import EditPaddockForm from './EditPaddockForm'
 import BorrowStationForm from './BorrowStationForm'
 import SettingsForm from './SettingsForm'
 import FarmerSubscriptionForm from './FarmerSubscriptionForm'
@@ -148,7 +147,6 @@ export default async function AdminPage() {
           </CollapsibleCard>
 
           <CollapsibleCard title="Edit a paddock" hint="Update paddock name, GPS, size, soil type, or elevation.">
-            <EditPaddockForm paddocks={editablePaddocks} />
           </CollapsibleCard>
 
           <CollapsibleCard title="Link station to paddock" hint="Connect a physical WS90 station to an existing paddock.">
