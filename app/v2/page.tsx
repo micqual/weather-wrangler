@@ -15,6 +15,7 @@ export default async function V2Home() {
   const stations = await prisma.stations.findMany({
     where: { farmer_id: (session.user as any).id },
     orderBy: { paddock_name: 'asc' },
+    include: { crop_types: true },
   })
 
   const polygons = await prisma.paddock_polygons.findMany({
@@ -23,8 +24,12 @@ export default async function V2Home() {
 
   return (
     <V2Shell
-      paddocks={stations.map((s) => ({ id: s.id, name: s.paddock_name ?? s.id }))}
-      polygons={polygons.map((p) => ({ id: p.id, stationId: p.station_id, name: p.name, geojson: p.geojson }))}
+      paddocks={stations.map((s) => ({
+        id: s.id,
+        name: s.paddock_name ?? s.id,
+        crop: ((s as any).crop_types?.name as string | undefined) ?? null,
+      }))}
+      polygons={polygons.map((p) => ({ id: p.id, stationId: p.station_id, geojson: p.geojson }))}
     />
   )
 }
