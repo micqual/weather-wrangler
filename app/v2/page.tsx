@@ -27,7 +27,7 @@ export default async function V2Home() {
       paddocks={stations.map((s) => ({
         id: s.id,
         name: s.paddock_name ?? s.id,
-        crop: ((s as any).crop_types?.name as string | undefined) ?? null,
+        crop: [(s as any).crop_types?.crop_name, (s as any).crop_types?.variety].filter(Boolean).join(' · ') || null,
       }))}
       polygons={polygons.map((p) => ({ id: p.id, stationId: p.station_id, geojson: p.geojson }))}
     />
