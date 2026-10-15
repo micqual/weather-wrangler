@@ -12,9 +12,10 @@ const TILES: Record<Basemap, string> = {
 }
 
 const LABEL_CSS = `
-.v2-label{background:transparent;border:0;box-shadow:none;padding:0;color:#fff;text-align:center;
-  text-shadow:0 1px 3px rgba(0,0,0,.85);font:600 13px/1.3 system-ui,-apple-system,sans-serif;white-space:nowrap}
-.v2-label:before{display:none}
+.leaflet-tooltip.v2-label{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;
+  color:#fff!important;text-align:center;font:600 13px/1.3 system-ui,-apple-system,sans-serif;white-space:nowrap;
+  -webkit-font-smoothing:antialiased;text-shadow:0 0 2px rgba(0,0,0,.9),0 1px 2px rgba(0,0,0,.7)}
+.leaflet-tooltip.v2-label:before{display:none!important}
 .v2-label-sub{font-weight:500;font-size:11px;display:flex;align-items:center;gap:5px;justify-content:center}
 .v2-label-sub span{width:9px;height:9px;border-radius:3px;border:1.5px solid #fff;display:inline-block}
 `
