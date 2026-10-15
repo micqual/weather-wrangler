@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import FarmMap, { MapShape, Basemap } from './FarmMap'
 import ConditionsPanel from './ConditionsPanel'
+import { SoilPanel, NitrogenPanel } from './SoilPanels'
 
 type Paddock = { id: string; name: string; crop: string | null }
 type Polygon = { id: string; stationId: string; geojson: any }
@@ -151,6 +152,10 @@ export default function V2Shell({ paddocks, polygons }: { paddocks: Paddock[]; p
               </div>
               <ConditionsPanel key={'o-' + selected.id} stationId={selected.id} compact />
             </>
+          ) : tab === 'Soil' ? (
+            <SoilPanel key={'s-' + selected.id} stationId={selected.id} />
+          ) : tab === 'Nitrogen' ? (
+            <NitrogenPanel key={'n-' + selected.id} stationId={selected.id} />
           ) : tab === 'Conditions' ? (
             <ConditionsPanel key={'c-' + selected.id} stationId={selected.id} />
           ) : (
