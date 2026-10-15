@@ -353,30 +353,3 @@ export async function shareStation(prevState: ActionState, formData: FormData): 
   revalidatePath('/admin')
   return { success: `${paddock.paddock_name} will now share weather data from ${source_station_id}.` }
 }
-
-export async function updatePaddock(prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const id = formData.get('id') as string
-  const paddock_name = formData.get('paddock_name') as string
-  const latitude = formData.get('latitude') as string
-  const longitude = formData.get('longitude') as string
-  const hectares = formData.get('hectares') as string
-  const soil_type = formData.get('soil_type') as string
-  const elevation_m = formData.get('elevation_m') as string
-
-  if (!id) return { error: 'Paddock ID missing.' }
-
-  await prisma.paddocks.update({
-    where: { id },
-    data: {
-      paddock_name: paddock_name || undefined,
-      latitude: latitude ? parseFloat(latitude) : null,
-      longitude: longitude ? parseFloat(longitude) : null,
-      hectares: hectares ? parseFloat(hectares) : null,
-      soil_type: soil_type || null,
-      elevation_m: elevation_m ? parseFloat(elevation_m) : null,
-    },
-  })
-
-  revalidatePath('/admin')
-  return { success: `Paddock "${paddock_name}" updated.` }
-}
