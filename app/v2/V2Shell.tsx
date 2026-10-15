@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import FarmMap, { MapShape, Basemap } from './FarmMap'
+import ConditionsPanel from './ConditionsPanel'
 
 type Paddock = { id: string; name: string; crop: string | null }
 type Polygon = { id: string; stationId: string; geojson: any }
@@ -148,11 +149,10 @@ export default function V2Shell({ paddocks, polygons }: { paddocks: Paddock[]; p
                 </div>
                 <div style={{ fontSize: 22, fontWeight: 600 }}>{hectares[selected.id] ? hectares[selected.id].toFixed(1) : '—'} <span style={{ fontSize: 14, fontWeight: 400, color: '#6b6f68' }}>ha</span></div>
               </div>
-              <div style={{ ...card, color: '#6b6f68', fontSize: 14 }}>
-                <div style={{ fontWeight: 600, color: '#1d211c', marginBottom: 6 }}>Live conditions</div>
-                Temperature, rain, wind, Delta T and the spray window from this paddock&apos;s station will show here.
-              </div>
+              <ConditionsPanel key={'o-' + selected.id} stationId={selected.id} compact />
             </>
+          ) : tab === 'Conditions' ? (
+            <ConditionsPanel key={'c-' + selected.id} stationId={selected.id} />
           ) : (
             <div style={{ ...card, color: '#6b6f68', fontSize: 14 }}>
               <div style={{ fontWeight: 600, color: '#1d211c', marginBottom: 6 }}>{tab}</div>
