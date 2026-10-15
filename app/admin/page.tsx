@@ -146,8 +146,6 @@ export default async function AdminPage() {
             <CreatePaddockForm farms={safeFarms} />
           </CollapsibleCard>
 
-          <CollapsibleCard title="Edit a paddock" hint="Update paddock name, GPS, size, soil type, or elevation.">
-          </CollapsibleCard>
 
           <CollapsibleCard title="Link station to paddock" hint="Connect a physical WS90 station to an existing paddock.">
             <LinkStationForm paddocks={paddockList} stations={stations} />
