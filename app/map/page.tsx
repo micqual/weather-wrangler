@@ -103,7 +103,7 @@ export default async function MapPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)' }}>
-        <Link href="/" style={{ color: 'var(--text-muted)', fontSize: 14, textDecoration: 'none' }}>← My Paddocks</Link>
+        <Link href="/dashboard" style={{ color: 'var(--text-muted)', fontSize: 14, textDecoration: 'none' }}>← Dashboard</Link>
         <h1 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>My Farm</h1>
         <div style={{ width: 80 }} />
       </div>

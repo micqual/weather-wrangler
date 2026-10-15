@@ -25,7 +25,7 @@ type Layer = 'crop' | 'rain' | 'temp' | 'gdd' | 'harvest' | 'season_rain' | 'nit
 
 const LAYER_LABELS: Record<Layer, string> = {
   crop: 'Crop type',
-  rain: 'Rain today',
+  rain: 'Rain (since 9am)',
   temp: 'Temperature',
   gdd: 'GDD progress',
   harvest: 'Days to harvest',
@@ -45,10 +45,11 @@ const CROP_COLOURS: Record<string, string> = {
 
 function rainColor(mm: number | null): string {
   if (mm == null) return '#888'
-  if (mm === 0) return '#f2762a'
-  if (mm < 5) return '#facc15'
-  if (mm < 15) return '#4ade80'
-  return '#60a5fa'
+  if (mm === 0) return '#e2e8f0'
+  if (mm < 5) return '#bfdbfe'
+  if (mm < 15) return '#60a5fa'
+  if (mm < 30) return '#1d4ed8'
+  return '#1e3a8a'
 }
 
 function tempColor(t: number | null): string {
@@ -119,10 +120,11 @@ function getLegendItems(layer: Layer, stations: StationData[]) {
       return crops.map(c => ({ color: CROP_COLOURS[c!] ?? '#888', label: c! }))
     case 'rain':
       return [
-        { color: '#f2762a', label: '0 mm' },
-        { color: '#facc15', label: '1–5 mm' },
-        { color: '#4ade80', label: '5–15 mm' },
-        { color: '#60a5fa', label: '15+ mm' },
+        { color: '#e2e8f0', label: '0 mm' },
+        { color: '#bfdbfe', label: '1–5 mm' },
+        { color: '#60a5fa', label: '5–15 mm' },
+        { color: '#1d4ed8', label: '15–30 mm' },
+        { color: '#1e3a8a', label: '30+ mm' },
       ]
     case 'temp':
       return [
@@ -170,11 +172,11 @@ function getLegendItems(layer: Layer, stations: StationData[]) {
   }
 }
 
-export default function FarmMap({ stations }: { stations: StationData[] }) {
+export default function FarmMap({ stations, defaultLayer }: { stations: StationData[]; defaultLayer?: Layer }) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const layersRef = useRef<any[]>([])
-  const [activeLayer, setActiveLayer] = useState<Layer>('crop')
+  const [activeLayer, setActiveLayer] = useState<Layer>(defaultLayer ?? 'crop')
   const [selectedStation, setSelectedStation] = useState<StationData | null>(null)
   const [cropFilter, setCropFilter] = useState<string>('all')
 
@@ -333,7 +335,7 @@ export default function FarmMap({ stations }: { stations: StationData[] }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
             <div style={{ background: 'var(--bg)', borderRadius: 8, padding: '8px 10px' }}>
               <div style={{ fontSize: 16, fontWeight: 600 }}>{selectedStation.rainToday != null ? `${selectedStation.rainToday} mm` : '—'}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Rain today</div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Since 9am</div>
             </div>
             <div style={{ background: 'var(--bg)', borderRadius: 8, padding: '8px 10px' }}>
               <div style={{ fontSize: 16, fontWeight: 600 }}>{selectedStation.tempC != null ? `${selectedStation.tempC}°C` : '—'}</div>
