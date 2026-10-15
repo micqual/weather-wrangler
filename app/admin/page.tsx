@@ -4,11 +4,13 @@ import { prisma } from '@/lib/prisma'
 import { createStation, createFarmer, createFarm } from './actions'
 import PaddockForm from './PaddockForm'
 import CreatePaddockForm from './CreatePaddockForm'
+import EditPaddockForm from './EditPaddockForm'
 import LinkStationForm from './LinkStationForm'
 import ShareStationForm from './ShareStationForm'
 import ReplaceStationForm from './ReplaceStationForm'
 import ResetPasswordForm from './ResetPasswordForm'
 import EditStationForm from './EditStationForm'
+import EditPaddockForm from './EditPaddockForm'
 import BorrowStationForm from './BorrowStationForm'
 import SettingsForm from './SettingsForm'
 import FarmerSubscriptionForm from './FarmerSubscriptionForm'
@@ -42,6 +44,27 @@ export default async function AdminPage() {
     orderBy: { created_at: 'desc' },
   })
   const paddockList = paddocks.map(p => ({ id: p.id, paddock_name: p.paddock_name, farm_name: (p.farms as any)?.name ?? '—' }))
+  const paddockListFull = paddocks.map(p => ({
+    id: p.id,
+    paddock_name: p.paddock_name,
+    farm_name: (p.farms as any)?.name ?? '—',
+    latitude: p.latitude != null ? parseFloat(String(p.latitude)) : null,
+    longitude: p.longitude != null ? parseFloat(String(p.longitude)) : null,
+    hectares: p.hectares != null ? parseFloat(String(p.hectares)) : null,
+    soil_type: p.soil_type,
+    elevation_m: p.elevation_m != null ? parseFloat(String(p.elevation_m)) : null,
+  }))
+  const toNum = (v: unknown) => (v != null ? parseFloat(String(v)) : null)
+  const editablePaddocks = paddocks.map(p => ({
+    id: p.id,
+    paddock_name: p.paddock_name,
+    farm_name: (p.farms as any)?.name ?? '—',
+    latitude: toNum(p.latitude),
+    longitude: toNum(p.longitude),
+    hectares: toNum(p.hectares),
+    soil_type: p.soil_type,
+    elevation_m: toNum(p.elevation_m),
+  }))
   const assigned = stations.filter(s => s.farm_id)
   const cropById = new Map(cropTypes.map(c => [c.id, c]))
   const stationsWithGps = stations.filter(s => s.latitude && s.longitude).length
@@ -116,8 +139,16 @@ export default async function AdminPage() {
             <EditStationForm stations={stations} />
           </CollapsibleCard>
 
+          <CollapsibleCard title="Edit paddock" hint="Update paddock name, GPS coordinates or other details.">
+            <EditPaddockForm paddocks={paddockListFull} />
+          </CollapsibleCard>
+
           <CollapsibleCard title="Create paddock" hint="Create a new paddock without requiring a physical station.">
             <CreatePaddockForm farms={safeFarms} />
+          </CollapsibleCard>
+
+          <CollapsibleCard title="Edit a paddock" hint="Update paddock name, GPS, size, soil type, or elevation.">
+            <EditPaddockForm paddocks={editablePaddocks} />
           </CollapsibleCard>
 
           <CollapsibleCard title="Link station to paddock" hint="Connect a physical WS90 station to an existing paddock.">
