@@ -200,7 +200,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               ? parseInt(new Date(r.created_at).toLocaleTimeString('en-AU', { timeZone: 'Australia/Melbourne', hour: '2-digit', hour12: false }))
               : new Date().getHours()
 
-            const spray = getSprayWindow(r?.temperature_c ?? null, r?.humidity ?? null, r?.wind_avg_ms ?? null, r?.wind_max_ms ?? null, hour)
+            const spray = getSprayWindow(r?.temperature_c ?? null, r?.humidity ?? null, r?.wind_avg_ms ?? null, r?.wind_max_ms ?? null, hour, avgRateMMH)
             const frost = getFrostRisk(r?.temperature_c ?? null, r?.humidity ?? null, cropFrostTemp, hour)
             const dampness = assessFieldDampness(rainStats.rainLast24h, rainStats.rainLast72h, rainStats.daysSinceLastRain, todayET?.etoMmDay ?? null, s.soil_type ?? null, r?.temperature_c ?? null)
             const heat = s.crop_types ? getHeatStress(r?.temperature_c ?? null, s.growth_stage ?? null) : null

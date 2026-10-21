@@ -29,7 +29,8 @@ export function getSprayWindow(
   humidity: number | null,
   windAvgMs: number | null,
   windMaxMs: number | null,
-  hour: number // Melbourne local hour 0-23
+  hour: number, // Melbourne local hour 0-23
+  rainRateMMH: number | null = null
 ): SprayWindowResult {
   const conditions: SprayCondition[] = []
   let worstStatus: SprayStatus = 'go'
@@ -58,6 +59,17 @@ export function getSprayWindow(
       reason: dtStatus === 'go' ? 'Good (2–8°C)'
         : dtStatus === 'caution' ? 'Marginal — droplet evaporation increasing'
         : deltaT < 2 ? 'Too low — inversion risk' : 'Too high — rapid evaporation',
+    })
+  }
+
+  // Rain — do not spray if it's raining
+  if (rainRateMMH != null && rainRateMMH > 0.5) {
+    flag('stop')
+    conditions.push({
+      label: 'Rain',
+      value: `${rainRateMMH.toFixed(1)} mm/hr`,
+      status: 'stop',
+      reason: 'Currently raining — product will wash off',
     })
   }
 
