@@ -156,11 +156,14 @@ function getMelbourne9amUTC(): Date {
 }
 
 export async function getDailyRainWithRate(stationId: string, prisma: any): Promise<{ rainMm: number | null; avgRateMMH: number | null }> {
+  // Use borrowed station if set
+  const stationRecord = await prisma.stations.findUnique({ where: { id: stationId }, select: { borrowed_station_id: true } })
+  const effectiveId = stationRecord?.borrowed_station_id ?? stationId
   const midnightUTC = getMelbourneMidnightUTC()
 
   const [firstToday, latest, todayReadings] = await Promise.all([
     prisma.weather_readings.findFirst({
-      where: { station_id: stationId, created_at: { gte: midnightUTC }, rain_mm: { not: null } },
+      where: { station_id: effectiveId, created_at: { gte: midnightUTC }, rain_mm: { not: null } },
       orderBy: { created_at: 'asc' },
       select: { rain_mm: true },
     }),
@@ -170,7 +173,7 @@ export async function getDailyRainWithRate(stationId: string, prisma: any): Prom
       select: { rain_mm: true },
     }),
     prisma.weather_readings.findMany({
-      where: { station_id: stationId, created_at: { gte: midnightUTC }, rain_mm: { not: null } },
+      where: { station_id: effectiveId, created_at: { gte: midnightUTC }, rain_mm: { not: null } },
       orderBy: { created_at: 'asc' },
       select: { rain_mm: true },
     }),
