@@ -161,36 +161,34 @@ export async function getDailyRainWithRate(stationId: string, prisma: any): Prom
   const effectiveId = stationRecord?.borrowed_station_id ?? stationId
   const midnightUTC = getMelbourneMidnightUTC()
 
-  const [firstToday, latest, todayReadings] = await Promise.all([
-    prisma.weather_readings.findFirst({
-      where: { station_id: effectiveId, created_at: { gte: midnightUTC }, rain_mm: { not: null } },
-      orderBy: { created_at: 'asc' },
-      select: { rain_mm: true },
-    }),
-    prisma.weather_readings.findFirst({
-      where: { station_id: stationId, rain_mm: { not: null } },
-      orderBy: { created_at: 'desc' },
-      select: { rain_mm: true },
-    }),
-    prisma.weather_readings.findMany({
-      where: { station_id: effectiveId, created_at: { gte: midnightUTC }, rain_mm: { not: null } },
-      orderBy: { created_at: 'asc' },
-      select: { rain_mm: true },
-    }),
-  ])
+  const todayReadings = await prisma.weather_readings.findMany({
+    where: { station_id: effectiveId, created_at: { gte: midnightUTC }, rain_mm: { not: null } },
+    orderBy: { created_at: 'asc' },
+    select: { rain_mm: true },
+  })
 
-  if (!firstToday || !latest) return { rainMm: null, avgRateMMH: null }
+  if (todayReadings.length < 2) return { rainMm: null, avgRateMMH: null }
 
-  const rainMm = Math.max(0, (latest.rain_mm as number) - (firstToday.rain_mm as number))
-
-  // Calculate average rain rate from increments — 15 min intervals × 4 = mm/h
+  // Use incremental sum to handle resets
+  let rainMm = 0
   let totalRate = 0
   let rateCount = 0
+  let lastValid = parseFloat(String(todayReadings[0].rain_mm))
+
   for (let i = 1; i < todayReadings.length; i++) {
-    const inc = Math.max(0, (todayReadings[i].rain_mm as number) - (todayReadings[i - 1].rain_mm as number))
-    if (inc > 0) {
-      totalRate += inc * 4 // 15 min to hourly rate
+    const curr = parseFloat(String(todayReadings[i].rain_mm))
+    const inc = curr - lastValid
+    if (inc < 0) {
+      // Reset — update baseline
+      lastValid = curr
+    } else if (inc > 0 && inc <= 25) {
+      rainMm += inc
+      totalRate += inc * 4
       rateCount++
+      lastValid = curr
+    } else if (inc > 25) {
+      // Spike — skip but update baseline
+      lastValid = curr
     }
   }
   const avgRateMMH = rateCount > 0 ? totalRate / rateCount : null
