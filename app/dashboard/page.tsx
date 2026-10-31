@@ -10,6 +10,8 @@ import { degreesToCompass, windArrow, rainVariance } from '@/lib/wind'
 import { getDailyET, get7DayET } from '@/lib/et'
 import { assessFieldDampness } from '@/lib/fieldDampness'
 import { getSprayWindow } from '@/lib/sprayWindow'
+import { getSprayOutlook } from '@/lib/sprayOutlook'
+import SprayStrip from '@/components/SprayStrip'
 import { getFrostRisk } from '@/lib/frostRisk'
 import { getHeatStress } from '@/lib/heatStress'
 import { assessDiseaseRisk } from '@/lib/diseaseRisk'
@@ -215,6 +217,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
             const disease = assessDiseaseRisk(r?.temperature_c ?? null, r?.humidity ?? null, rainStats.rainLast24h, s.crop_types?.crop_name ?? null)
 
+            const sprayOutlook = await getSprayOutlook(s.latitude ?? null, s.longitude ?? null)
+
             const sprayIcon = spray.overall === 'go' ? '🟢' : spray.overall === 'caution' ? '🟡' : '🔴'
             const frostIcon = frost.risk === 'none' ? '🟢' : frost.risk === 'watch' ? '🟡' : '🔴'
             const deltaTIcon = spray.deltaT != null ? (spray.deltaT >= 2 && spray.deltaT <= 8 ? '🟢' : spray.deltaT <= 10 ? '🟡' : '🔴') : '—'
@@ -282,6 +286,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                     }] : []),
                     { name: 'Delta T', value: spray.deltaT != null ? `${spray.deltaT.toFixed(1)}°C` : '—', status: deltaTIcon, detail: null, subDetail: spray.deltaT != null ? (spray.deltaT < 2 ? '2–8°C optimal range — current too low' : spray.deltaT > 8 ? '2–8°C optimal range — current too high' : '2–8°C optimal') : null },
                     { name: 'Spray window', subDetail: spray.overall !== 'go' ? spray.conditions.filter(c => c.status !== 'go').map(c => `${c.label}: ${c.value} (${c.reason})`).join(' · ') : null, value: spray.overall === 'go' ? 'Good to spray' : spray.overall === 'caution' ? 'Spray with caution' : 'Do not spray', status: sprayIcon, detail: null },
+                    ...(sprayOutlook ? [{ name: 'Spray outlook', value: sprayOutlook.headline, status: sprayOutlook.icon, detail: null, subDetail: sprayOutlook.detail, extra: <SprayStrip hours={sprayOutlook.hours} /> }] : []),
                     { name: 'Frost risk', value: frost.risk === 'none' ? 'No frost risk' : frost.risk === 'watch' ? 'Frost watch' : frost.risk === 'warning' ? 'Frost warning' : 'Frost!', status: frostIcon, detail: null },
                     { name: 'Field trafficability', value: dampness.level === 'dry' ? 'Drive OK' : dampness.level === 'damp' ? 'Proceed with caution' : 'Do not drive', status: dampness.icon, detail: null, subDetail: dampness.reason },
                     ...(disease.isCereal ? [{ name: 'Disease risk', value: disease.label, status: disease.icon, detail: disease.diseases.length > 0 ? disease.diseases.map(d => d.name).join(', ') : null }] : []),
