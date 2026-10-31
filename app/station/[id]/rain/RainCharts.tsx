@@ -2,259 +2,192 @@
 
 import { useState } from 'react'
 
-type DayRain = { date: string; rain: number }
-type BomMonthly = { month: string; bom: number; station: number }
+type Day = { date: string; rain: number; manual: boolean }
+type Monthly = { month: string; station: number; manual: number; bom: number | null }
 
-function BarChart({ data, color = '#60a5fa', label }: { data: { label: string; value: number }[]; color?: string; label: string }) {
-  const [tooltip, setTooltip] = useState<{ i: number } | null>(null)
-  if (data.length === 0) return null
-  const max = Math.max(...data.map(d => d.value), 1)
-  const h = 120
+const BLUE = '#60a5fa'
+const GREEN = '#34d399'   // manual entries
+const ORANGE = '#f2762a'
 
+const card = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 } as const
+const heading = { fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 } as const
+const tip = { position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 11, whiteSpace: 'nowrap', zIndex: 10, marginBottom: 4 } as const
+const hasManual = (ds: Day[]) => ds.some(d => d.manual && d.rain > 0)
+const fmtDay = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+
+function Legend({ items }: { items: { color: string; label: string; opacity?: number }[] }) {
   return (
-    <div>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: h, position: 'relative' }}>
-        {data.map((d, i) => (
-          <div
-            key={i}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', cursor: 'pointer', position: 'relative' }}
-            onMouseEnter={() => setTooltip({ i })}
-            onMouseLeave={() => setTooltip(null)}
-          >
-            {tooltip?.i === i && (
-              <div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 11, whiteSpace: 'nowrap', zIndex: 10, marginBottom: 4 }}>
-                <div style={{ fontWeight: 600 }}>{d.value.toFixed(1)} mm</div>
-                <div style={{ color: 'var(--text-muted)' }}>{d.label}</div>
-              </div>
-            )}
-            <div style={{ width: '100%', background: d.value > 0 ? color : 'var(--border)', borderRadius: '2px 2px 0 0', height: `${(d.value / max) * (h - 20)}px`, minHeight: d.value > 0 ? 2 : 0 }} />
-          </div>
-        ))}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 10, color: 'var(--text-muted)' }}>
-        <span>{data[0]?.label}</span>
-        <span>{data[Math.floor(data.length / 2)]?.label}</span>
-        <span>{data[data.length - 1]?.label}</span>
-      </div>
+    <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+      {items.map((it, i) => <span key={i}><span style={{ color: it.color, opacity: it.opacity ?? 1 }}>■</span> {it.label}</span>)}
     </div>
   )
 }
 
-function MonthlyCompare({ bomMonthly }: { bomMonthly: BomMonthly[] }) {
-  const [tooltip, setTooltip] = useState<{ i: number; type: 'station' | 'bom' } | null>(null)
-  if (bomMonthly.length === 0) return null
-  const max = Math.max(...bomMonthly.flatMap(d => [d.bom, d.station]), 1)
-  const h = 100
-
+function DailyBars({ days }: { days: Day[] }) {
+  const [hover, setHover] = useState<number | null>(null)
+  const max = Math.max(...days.map(d => d.rain), 1)
+  const h = 120
   return (
     <div>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Monthly — station vs BOM</div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: h + 20 }}>
-        {bomMonthly.map((m, i) => (
+      <div style={heading}>Daily rainfall — last 30 days</div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: h }}>
+        {days.map((d, i) => (
+          <div key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', cursor: 'pointer', position: 'relative' }}>
+            {hover === i && (
+              <div style={tip}>
+                <div style={{ fontWeight: 600 }}>{d.rain.toFixed(1)} mm{d.manual ? ' (manual entry)' : ''}</div>
+                <div style={{ color: 'var(--text-muted)' }}>{fmtDay(d.date)}</div>
+              </div>
+            )}
+            <div style={{ width: '100%', background: d.rain > 0 ? (d.manual ? GREEN : BLUE) : 'var(--border)', borderRadius: '2px 2px 0 0', height: `${(d.rain / max) * (h - 20)}px`, minHeight: d.rain > 0 ? 2 : 0 }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 10, color: 'var(--text-muted)' }}>
+        <span>{fmtDay(days[0].date)}</span><span>{fmtDay(days[Math.floor(days.length / 2)].date)}</span><span>{fmtDay(days[days.length - 1].date)}</span>
+      </div>
+      {hasManual(days) && <Legend items={[{ color: BLUE, label: 'Station' }, { color: GREEN, label: 'Manual entry' }]} />}
+    </div>
+  )
+}
+
+function MonthlyCompare({ monthly }: { monthly: Monthly[] }) {
+  const [hover, setHover] = useState<{ i: number; k: 'stack' | 'bom' } | null>(null)
+  const max = Math.max(...monthly.flatMap(m => [m.station + m.manual, m.bom ?? 0]), 1)
+  const h = 100
+  const anyManual = monthly.some(m => m.manual > 0)
+  const anyBom = monthly.some(m => m.bom != null)
+  return (
+    <div>
+      <div style={heading}>Monthly rainfall{anyBom ? ' — station vs BOM' : ''}</div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+        {monthly.map((m, i) => (
           <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <div style={{ width: '100%', display: 'flex', alignItems: 'flex-end', gap: 2, height: h, position: 'relative' }}>
-              {/* Station bar */}
-              <div
-                style={{ flex: 1, background: '#60a5fa', borderRadius: '2px 2px 0 0', height: `${(m.station / max) * h}px`, cursor: 'pointer', position: 'relative' }}
-                onMouseEnter={() => setTooltip({ i, type: 'station' })}
-                onMouseLeave={() => setTooltip(null)}
-              >
-                {tooltip?.i === i && tooltip?.type === 'station' && (
-                  <div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 11, whiteSpace: 'nowrap', zIndex: 10, marginBottom: 4 }}>
-                    <div style={{ fontWeight: 600, color: '#60a5fa' }}>Station: {m.station.toFixed(1)} mm</div>
+            <div style={{ width: '100%', display: 'flex', alignItems: 'flex-end', gap: 2, height: h }}>
+              <div onMouseEnter={() => setHover({ i, k: 'stack' })} onMouseLeave={() => setHover(null)}
+                style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: h, cursor: 'pointer', position: 'relative' }}>
+                {hover?.i === i && hover.k === 'stack' && (
+                  <div style={tip}>
+                    {m.station > 0 && <div style={{ fontWeight: 600, color: BLUE }}>Station: {m.station.toFixed(1)} mm</div>}
+                    {m.manual > 0 && <div style={{ fontWeight: 600, color: GREEN }}>Manual: {m.manual.toFixed(1)} mm</div>}
                     <div style={{ color: 'var(--text-muted)' }}>{m.month}</div>
                   </div>
                 )}
+                <div style={{ background: GREEN, height: (m.manual / max) * h, borderRadius: '2px 2px 0 0' }} />
+                <div style={{ background: BLUE, height: (m.station / max) * h, borderRadius: m.manual > 0 ? 0 : '2px 2px 0 0' }} />
               </div>
-              {/* BOM bar */}
-              <div
-                style={{ flex: 1, background: 'var(--text-muted)', opacity: 0.4, borderRadius: '2px 2px 0 0', height: `${(m.bom / max) * h}px`, cursor: 'pointer', position: 'relative' }}
-                onMouseEnter={() => setTooltip({ i, type: 'bom' })}
-                onMouseLeave={() => setTooltip(null)}
-              >
-                {tooltip?.i === i && tooltip?.type === 'bom' && (
-                  <div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 11, whiteSpace: 'nowrap', zIndex: 10, marginBottom: 4 }}>
-                    <div style={{ fontWeight: 600 }}>BOM: {m.bom.toFixed(1)} mm</div>
-                    <div style={{ color: 'var(--text-muted)' }}>{m.month}</div>
-                  </div>
-                )}
-              </div>
+              {m.bom != null && (
+                <div onMouseEnter={() => setHover({ i, k: 'bom' })} onMouseLeave={() => setHover(null)}
+                  style={{ flex: 1, background: 'var(--text-muted)', opacity: 0.4, borderRadius: '2px 2px 0 0', height: (m.bom / max) * h, cursor: 'pointer', position: 'relative' }}>
+                  {hover?.i === i && hover.k === 'bom' && (
+                    <div style={tip}><div style={{ fontWeight: 600 }}>BOM: {m.bom.toFixed(1)} mm</div><div style={{ color: 'var(--text-muted)' }}>{m.month}</div></div>
+                  )}
+                </div>
+              )}
             </div>
             <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{m.month}</div>
           </div>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
-        <span><span style={{ color: '#60a5fa' }}>■</span> Station</span>
-        <span><span style={{ color: 'var(--text-muted)' }}>■</span> BOM</span>
-      </div>
+      <Legend items={[{ color: BLUE, label: 'Station' }, ...(anyManual ? [{ color: GREEN, label: 'Manual entry' }] : []), ...(anyBom ? [{ color: '#9ca3af', label: 'BOM' }] : [])]} />
     </div>
   )
 }
 
-function YearOverYear({ allDays }: { allDays: DayRain[] }) {
+function YearOverYear({ allDays }: { allDays: Day[] }) {
   const now = new Date()
-  const defaultFrom = new Date(now.getFullYear(), now.getMonth() - 2, 1).toLocaleDateString('en-CA')
-  const defaultTo = now.toLocaleDateString('en-CA')
-
-  const [from, setFrom] = useState(defaultFrom)
-  const [to, setTo] = useState(defaultTo)
-
+  const [from, setFrom] = useState(new Date(now.getFullYear(), now.getMonth() - 2, 1).toLocaleDateString('en-CA'))
+  const [to, setTo] = useState(now.toLocaleDateString('en-CA'))
   if (allDays.length === 0) return null
 
-  const dayMap = new Map(allDays.map(d => [d.date, d.rain]))
-
-  // Build date range
-  const start = new Date(from)
-  const end = new Date(to)
-  const days: string[] = []
-  const cur = new Date(start)
-  while (cur <= end) {
-    days.push(cur.toLocaleDateString('en-CA'))
-    cur.setDate(cur.getDate() + 1)
-  }
-
-  // This year vs last year
-  const thisYear = days.map(d => dayMap.get(d) ?? 0)
-  const lastYear = days.map(d => {
-    const ly = new Date(d)
-    ly.setFullYear(ly.getFullYear() - 1)
-    return dayMap.get(ly.toLocaleDateString('en-CA')) ?? 0
-  })
-
-  const thisTotal = thisYear.reduce((s, v) => s + v, 0)
-  const lastTotal = lastYear.reduce((s, v) => s + v, 0)
-
-  const max = Math.max(...thisYear, ...lastYear, 1)
+  const dayMap = new Map(allDays.map(d => [d.date, d]))
+  const dates: string[] = []
+  for (const cur = new Date(from + 'T12:00:00'), end = new Date(to + 'T12:00:00'); cur <= end; cur.setDate(cur.getDate() + 1)) dates.push(cur.toLocaleDateString('en-CA'))
+  const thisYear = dates.map(d => dayMap.get(d))
+  const lastYear = dates.map(d => { const ly = new Date(d + 'T12:00:00'); ly.setFullYear(ly.getFullYear() - 1); return dayMap.get(ly.toLocaleDateString('en-CA')) })
+  const sum = (a: (Day | undefined)[]) => a.reduce((s, d) => s + (d?.rain ?? 0), 0)
+  const max = Math.max(...[...thisYear, ...lastYear].map(d => d?.rain ?? 0), 1)
   const h = 120
+  const anyManual = [...thisYear, ...lastYear].some(d => d?.manual && d.rain > 0)
+  const input = { fontSize: 12, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' } as const
 
   return (
     <div>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>This year vs last year</div>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-        <div>
-          <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>From</label>
-          <input type="date" value={from} onChange={e => setFrom(e.target.value)} style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }} />
-        </div>
-        <div>
-          <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>To</label>
-          <input type="date" value={to} onChange={e => setTo(e.target.value)} style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }} />
-        </div>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', paddingBottom: 4 }}>
-          <div style={{ fontSize: 13 }}>
-            <span style={{ color: '#60a5fa', fontWeight: 600 }}>{thisTotal.toFixed(1)} mm</span>
-            <span style={{ color: 'var(--text-muted)', fontSize: 11 }}> this year</span>
-          </div>
-          <div style={{ fontSize: 13 }}>
-            <span style={{ color: '#f2762a', fontWeight: 600 }}>{lastTotal.toFixed(1)} mm</span>
-            <span style={{ color: 'var(--text-muted)', fontSize: 11 }}> last year</span>
-          </div>
+      <div style={heading}>This year vs last year</div>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <div><label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>From</label><input type="date" value={from} onChange={e => setFrom(e.target.value)} style={input} /></div>
+        <div><label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>To</label><input type="date" value={to} onChange={e => setTo(e.target.value)} style={input} /></div>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', paddingBottom: 4, fontSize: 13 }}>
+          <span><span style={{ color: BLUE, fontWeight: 600 }}>{sum(thisYear).toFixed(1)} mm</span> <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>this year</span></span>
+          <span><span style={{ color: ORANGE, fontWeight: 600 }}>{sum(lastYear).toFixed(1)} mm</span> <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>last year</span></span>
         </div>
       </div>
-
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 1, height: h }}>
-        {days.map((d, i) => (
+        {dates.map((d, i) => (
           <div key={i} style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 0.5, height: '100%' }}>
-            <div style={{ flex: 1, background: '#60a5fa', borderRadius: '1px 1px 0 0', height: `${(thisYear[i] / max) * h}px`, minHeight: thisYear[i] > 0 ? 2 : 0 }} />
-            <div style={{ flex: 1, background: '#f2762a', borderRadius: '1px 1px 0 0', height: `${(lastYear[i] / max) * h}px`, minHeight: lastYear[i] > 0 ? 2 : 0, opacity: 0.6 }} />
+            <div title={`${fmtDay(d)}: ${(thisYear[i]?.rain ?? 0).toFixed(1)} mm${thisYear[i]?.manual ? ' (manual)' : ''}`}
+              style={{ flex: 1, background: thisYear[i]?.manual ? GREEN : BLUE, borderRadius: '1px 1px 0 0', height: `${((thisYear[i]?.rain ?? 0) / max) * h}px`, minHeight: (thisYear[i]?.rain ?? 0) > 0 ? 2 : 0 }} />
+            <div title={`Last year: ${(lastYear[i]?.rain ?? 0).toFixed(1)} mm${lastYear[i]?.manual ? ' (manual)' : ''}`}
+              style={{ flex: 1, background: lastYear[i]?.manual ? GREEN : ORANGE, opacity: 0.6, borderRadius: '1px 1px 0 0', height: `${((lastYear[i]?.rain ?? 0) / max) * h}px`, minHeight: (lastYear[i]?.rain ?? 0) > 0 ? 2 : 0 }} />
           </div>
         ))}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 10, color: 'var(--text-muted)' }}>
-        <span>{new Date(from).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}</span>
-        <span>{new Date(to).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}</span>
+        <span>{fmtDay(dates[0])}</span><span>{fmtDay(dates[dates.length - 1])}</span>
       </div>
-      <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
-        <span><span style={{ color: '#60a5fa' }}>■</span> This year</span>
-        <span><span style={{ color: '#f2762a', opacity: 0.7 }}>■</span> Last year</span>
-      </div>
+      <Legend items={[{ color: BLUE, label: 'This year (left bar)' }, { color: ORANGE, label: 'Last year (right bar)', opacity: 0.7 }, ...(anyManual ? [{ color: GREEN, label: 'Manual entry' }] : [])]} />
     </div>
   )
 }
 
-export default function RainCharts({ days, seasonDays, bomMonthly, rainEvents }: {
-  days: DayRain[]
-  seasonDays: DayRain[]
-  bomMonthly: BomMonthly[]
-  rainEvents: DayRain[]
+function Cumulative({ seasonDays }: { seasonDays: Day[] }) {
+  if (seasonDays.length < 2) return null
+  let run = 0
+  const pts = seasonDays.map(d => { run += d.rain; return { v: run, manual: d.manual } })
+  const max = Math.max(run, 1), w = 100, h = 120
+  const xy = pts.map((p, i) => ({ x: (i / (pts.length - 1)) * w, y: h - (p.v / max) * h, manual: p.manual }))
+  const area = `0,${h} ${xy.map(p => `${p.x},${p.y}`).join(' ')} ${w},${h}`
+  return (
+    <div>
+      <div style={heading}>Cumulative season rainfall</div>
+      <svg viewBox={`0 0 100 ${h}`} style={{ width: '100%', height: 'auto' }} preserveAspectRatio="none">
+        <polygon points={area} fill={BLUE} fillOpacity="0.15" />
+        {xy.slice(1).map((p, i) => (
+          <line key={i} x1={xy[i].x} y1={xy[i].y} x2={p.x} y2={p.y} stroke={p.manual ? GREEN : BLUE} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+        ))}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+        <span>{fmtDay(seasonDays[0].date)}</span><span>{fmtDay(seasonDays[seasonDays.length - 1].date)}</span>
+      </div>
+      {hasManual(seasonDays) && <Legend items={[{ color: BLUE, label: 'Station' }, { color: GREEN, label: 'Manual entry' }]} />}
+    </div>
+  )
+}
+
+export default function RainCharts({ days, seasonDays, allDays, monthly, rainEvents }: {
+  days: Day[]; seasonDays: Day[]; allDays: Day[]; monthly: Monthly[]; rainEvents: Day[]
 }) {
-  const barData = days.map(d => ({
-    label: new Date(d.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }),
-    value: d.rain,
-  }))
-
-  // Combine all known daily data for year-over-year
-  const allDaysMap = new Map<string, number>()
-  for (const d of days) allDaysMap.set(d.date, d.rain)
-  for (const d of seasonDays) allDaysMap.set(d.date, d.rain)
-  const allDays = [...allDaysMap.entries()].map(([date, rain]) => ({ date, rain })).sort((a, b) => a.date.localeCompare(b.date))
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-
-      {/* 30 day bar chart */}
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
-        <BarChart data={barData} color='#60a5fa' label='Daily rainfall — last 30 days' />
-      </div>
-
-      {/* Monthly comparison */}
-      {bomMonthly.length > 0 && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
-          <MonthlyCompare bomMonthly={bomMonthly} />
-        </div>
-      )}
-
-      {/* Year over year */}
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
-        <YearOverYear allDays={allDays} />
-      </div>
-
-      {/* Cumulative season chart */}
-      {seasonDays.length > 0 && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Cumulative season rainfall</div>
-          {(() => {
-            const cumulative: { label: string; value: number }[] = []
-            let running = 0
-            for (const d of seasonDays) {
-              running += d.rain
-              cumulative.push({ label: new Date(d.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }), value: Math.round(running * 10) / 10 })
-            }
-            const max = Math.max(...cumulative.map(d => d.value), 1)
-            const w = 100, h = 120
-            const points = cumulative.map((d, i) => `${(i / (cumulative.length - 1)) * w},${h - (d.value / max) * h}`).join(' ')
-            return (
-              <svg viewBox={`0 0 100 ${h}`} style={{ width: '100%', height: 'auto' }} preserveAspectRatio="none">
-                <polyline points={points} fill="none" stroke="#60a5fa" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
-                <polygon points={`0,${h} ${points} ${w},${h}`} fill="#60a5fa" fillOpacity="0.15" />
-              </svg>
-            )
-          })()}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
-            <span>{seasonDays[0]?.date ? new Date(seasonDays[0].date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : ''}</span>
-            <span>{seasonDays[seasonDays.length - 1]?.date ? new Date(seasonDays[seasonDays.length - 1].date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : ''}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Rain events table */}
+      <div style={card}><DailyBars days={days} /></div>
+      {monthly.length > 0 && <div style={card}><MonthlyCompare monthly={monthly} /></div>}
+      <div style={card}><YearOverYear allDays={allDays} /></div>
+      {seasonDays.length > 1 && <div style={card}><Cumulative seasonDays={seasonDays} /></div>}
       {rainEvents.length > 0 && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Recent rain events</div>
+        <div style={card}>
+          <div style={heading}>Recent rain events</div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                <th style={{ padding: '6px 0', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 500 }}>Date</th>
-                <th style={{ padding: '6px 0', textAlign: 'right', color: 'var(--text-muted)', fontWeight: 500 }}>Amount</th>
-                <th style={{ padding: '6px 0', textAlign: 'right', color: 'var(--text-muted)', fontWeight: 500 }}>Category</th>
+                {['Date', 'Amount', 'Category'].map((t, i) => <th key={t} style={{ padding: '6px 0', textAlign: i === 0 ? 'left' : 'right', color: 'var(--text-muted)', fontWeight: 500 }}>{t}</th>)}
               </tr>
             </thead>
             <tbody>
               {rainEvents.map((e, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '8px 0' }}>{new Date(e.date).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}</td>
-                  <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: '#60a5fa' }}>{e.rain.toFixed(1)} mm</td>
+                  <td style={{ padding: '8px 0' }}>{new Date(e.date + 'T12:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}</td>
+                  <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: e.manual ? GREEN : BLUE }}>{e.rain.toFixed(1)} mm{e.manual ? ' ✎' : ''}</td>
                   <td style={{ padding: '8px 0', textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>
                     {e.rain >= 25 ? '🔵 Heavy' : e.rain >= 10 ? '🟢 Moderate' : e.rain >= 5 ? '🟡 Light' : '⚪ Trace'}
                   </td>
@@ -262,6 +195,7 @@ export default function RainCharts({ days, seasonDays, bomMonthly, rainEvents }:
               ))}
             </tbody>
           </table>
+          {rainEvents.some(e => e.manual) && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>✎ manual entry</div>}
         </div>
       )}
     </div>
