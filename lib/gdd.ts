@@ -48,11 +48,14 @@ function getMelbourneMidnightUTC(): Date {
   // Get today's date in Melbourne time
   const melbDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Melbourne' })
   const [year, month, day] = melbDateStr.split('-').map(Number)
+  // Before 9am Melbourne the current rain day started at yesterday's 9am
+  const melbHourNow = parseInt(new Date().toLocaleTimeString('en-GB', { timeZone: 'Australia/Melbourne', hour: '2-digit', hour12: false }))
+  const dayShift = melbHourNow < 9 ? 1 : 0
 
   // Find UTC time that corresponds to 9am Melbourne (BOM standard)
   // 9am AEST = 23:00 UTC previous day, 9am AEDT = 22:00 UTC previous day
   for (const utcHour of [22, 23]) {
-    const candidate = new Date(Date.UTC(year, month - 1, day - 1, utcHour, 0, 0, 0))
+    const candidate = new Date(Date.UTC(year, month - 1, day - 1 - dayShift, utcHour, 0, 0, 0))
     const melbHour = parseInt(
       candidate.toLocaleTimeString('en-AU', { timeZone: 'Australia/Melbourne', hour: '2-digit', hour12: false })
     )
@@ -60,7 +63,7 @@ function getMelbourneMidnightUTC(): Date {
   }
 
   // Fallback to UTC+10 (AEST) 9am = 23:00 UTC prev day
-  return new Date(Date.UTC(year, month - 1, day - 1, 23, 0, 0, 0))
+  return new Date(Date.UTC(year, month - 1, day - 1 - dayShift, 23, 0, 0, 0))
 }
 
 export async function getDailyRain(stationId: string, prisma: any): Promise<number | null> {
