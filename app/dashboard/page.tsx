@@ -160,6 +160,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             const arrow = windArrow(r?.wind_dir_deg ?? null)
             const windKmh = r?.wind_avg_ms != null ? (r.wind_avg_ms * 3.6).toFixed(0) : null
 
+            // Shared paddocks read weather from the station they borrow from
+            const dataId = (s as any).borrowed_station_id ?? s.id
+            const srcStation = (s as any).borrowed_station_id ? await prisma.stations.findUnique({ where: { id: (s as any).borrowed_station_id }, select: { paddock_name: true, latitude: true, longitude: true, elevation_m: true } }) : null
+            const dLat = s.latitude ?? srcStation?.latitude ?? null
+            const dLon = s.longitude ?? srcStation?.longitude ?? null
+            const dElev = s.elevation_m ?? srcStation?.elevation_m ?? null
             const cropBaseTemp = toNum(s.crop_types?.base_temp_gdd) ?? 4
             const cropTargetGdd = toNum(s.crop_types?.target_gdd_harvest) ?? 0
             const cropFrostTemp = toNum(s.crop_types?.frost_alert_temp)
@@ -181,17 +187,17 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                   .filter((d): d is Date => d != null)
                   .sort((a, b) => a.getTime() - b.getTime())[0]
                 return earliestPlanting
-                  ? getDailyAvgTempsWithGapFill(s.id, earliestPlanting, s.latitude ?? null, s.longitude ?? null, prisma)
+                  ? getDailyAvgTempsWithGapFill(dataId, earliestPlanting, dLat, dLon, prisma)
                   : Promise.resolve([])
               })(),
-              getDailyET(s.id, s.elevation_m ?? null, s.latitude ?? null, prisma),
-              get7DayET(s.id, s.elevation_m ?? null, s.latitude ?? null, prisma),
-              getRainStats(s.id, prisma),
-              s.planted_date ? getGrowingSeasonRain(s.id, new Date(s.planted_date), prisma) : Promise.resolve(0),
-              s.planted_date ? getGrowingSeasonET(s.id, new Date(s.planted_date), s.elevation_m ?? null, s.latitude ?? null, prisma) : Promise.resolve(0),
-              getLastFrostDate(s.id, prisma),
+              getDailyET(dataId, dElev, dLat, prisma),
+              get7DayET(dataId, dElev, dLat, prisma),
+              getRainStats(dataId, prisma),
+              s.planted_date ? getGrowingSeasonRain(dataId, new Date(s.planted_date), prisma) : Promise.resolve(0),
+              s.planted_date ? getGrowingSeasonET(dataId, new Date(s.planted_date), dElev, dLat, prisma) : Promise.resolve(0),
+              getLastFrostDate(dataId, prisma),
               prisma.weather_readings.findFirst({
-                where: { station_id: s.id, created_at: { lte: new Date(Date.now() - 60 * 60 * 1000) } },
+                where: { station_id: dataId, created_at: { lte: new Date(Date.now() - 60 * 60 * 1000) } },
                 orderBy: { created_at: 'desc' },
                 select: { temperature_c: true, humidity: true },
               }),
@@ -217,7 +223,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
             const disease = assessDiseaseRisk(r?.temperature_c ?? null, r?.humidity ?? null, rainStats.rainLast24h, s.crop_types?.crop_name ?? null)
 
-            const sprayOutlook = await getSprayOutlook(s.latitude ?? null, s.longitude ?? null)
+            const sprayOutlook = await getSprayOutlook(dLat, dLon)
 
             const sprayIcon = spray.overall === 'go' ? '🟢' : spray.overall === 'caution' ? '🟡' : '🔴'
             const frostIcon = frost.risk === 'none' ? '🟢' : frost.risk === 'watch' ? '🟡' : '🔴'
@@ -235,7 +241,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                       <div style={{ fontSize: 16, fontWeight: 600 }}>{s.paddock_name ?? s.id}</div>
                     </Link>
                     <div style={{ fontSize: 12, color: age.color, marginTop: 3 }}>{age.text}</div>
-                  {borrowedFrom && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>📡 Weather from {borrowedFrom}</div>}
+                  {borrowedFrom && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>📡 Weather from {srcStation?.paddock_name ?? borrowedFrom}</div>}
                   </div>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: age.dot, marginTop: 6 }} />
                 </div>
