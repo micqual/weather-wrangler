@@ -312,7 +312,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                       detail: null,
                       subDetail: frostHistory.lastFrostDate.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }),
                     }] : []),
-                    ...(fireRisk.show ? [{ name: '🌾 Harvest window', value: harvest.overall === 'go' ? 'Good to harvest' : harvest.overall === 'caution' ? 'Harvest with caution' : 'Stop harvest', status: harvest.overall === 'go' ? '🟢' : harvest.overall === 'caution' ? '🟡' : '🔴', detail: null, subDetail: <>{harvest.conditions.map(c => `${c.label}: ${c.value} (${c.reason})`).join(' · ')}<div style={{ marginTop: 4, fontStyle: 'italic', opacity: 0.8 }}>{harvest.note}</div></> }] : []),
+                    ...(fireRisk.show ? [{ name: 'Harvest window', value: harvest.overall === 'go' ? 'Good to harvest' : harvest.overall === 'caution' ? 'Harvest with caution' : 'Stop harvest', status: harvest.overall === 'go' ? '🟢' : harvest.overall === 'caution' ? '🟡' : '🔴', detail: null, subDetail: <>{harvest.conditions.map(c => `${c.label}: ${c.value} (${c.reason})`).join(' · ')}<div style={{ marginTop: 4, fontStyle: 'italic', opacity: 0.8 }}>{harvest.note}</div></> }] : []),
                     ...(heat && heat.level !== 'none' ? [{ name: 'Heat stress', value: heat.label, status: heat.level === 'severe' ? '🔴' : '🟡', detail: heat.reason }] : []),
                   ].map((row, i, arr) => (
                     <div key={i} style={{ padding: '9px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
