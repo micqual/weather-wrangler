@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import GddCard from '@/components/GddCard'
 import ETSparkline from '@/components/ETSparkline'
-import { getDailyAvgTemps, getDailyRainWithRate, getRainStats, getDailyAvgTempsWithGapFill, getGrowingSeasonRain, getGrowingSeasonET, getLastFrostDate } from '@/lib/gdd'
+import { getDailyAvgTemps, getDailyRainWithRate, getYesterdayRain, getRainStats, getDailyAvgTempsWithGapFill, getGrowingSeasonRain, getGrowingSeasonET, getLastFrostDate } from '@/lib/gdd'
 import { degreesToCompass, windArrow, rainVariance } from '@/lib/wind'
 import { getDailyET, get7DayET } from '@/lib/et'
 import { assessFieldDampness } from '@/lib/fieldDampness'
@@ -205,6 +205,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             ])
 
             const variance = dailyRain != null ? rainVariance(dailyRain, avgRateMMH) : null
+            const yesterdayRain = await getYesterdayRain(s.id, prisma)
             const hour = r?.created_at
               ? parseInt(new Date(r.created_at).toLocaleTimeString('en-AU', { timeZone: 'Australia/Melbourne', hour: '2-digit', hour12: false }))
               : new Date().getHours()
@@ -260,12 +261,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                     { href: `/station/${s.id}/history?metric=temp`, value: r?.temperature_c != null ? `${r.temperature_c.toFixed(1)}°` : '—', sub: (() => { const p = hourAgo?.temperature_c != null ? parseFloat(String(hourAgo.temperature_c)) : null; const c = r?.temperature_c != null ? parseFloat(String(r.temperature_c)) : null; if (!p || !c) return ''; const d = c - p; return d > 0.5 ? '↑' : d < -0.5 ? '↓' : '→'; })(), label: 'Temp' },
                     { href: `/station/${s.id}/history?metric=humidity`, value: r?.humidity != null ? `${r.humidity}%` : '—', sub: (() => { const p = hourAgo?.humidity != null ? parseFloat(String(hourAgo.humidity)) : null; const c = r?.humidity != null ? parseFloat(String(r.humidity)) : null; if (!p || !c) return ''; const d = c - p; return d > 2 ? '↑' : d < -2 ? '↓' : '→'; })(), label: 'Humidity' },
                     { href: `/station/${s.id}/history?metric=wind`, value: windKmh ? `${windKmh} km/h` : '—', sub: windKmh ? `${arrow} ${compass}` : '', label: 'Wind' },
-                    { href: `/station/${s.id}/rain`, value: dailyRain != null ? `${dailyRain.toFixed(1)} mm` : '—', sub: variance?.label ?? '', label: 'Since 9am' },
+                    { href: `/station/${s.id}/rain`, value: dailyRain != null ? `${dailyRain.toFixed(1)} mm` : '—', sub: variance?.label ?? '', label: 'Since 9am', extra: yesterdayRain != null ? `Yesterday ${yesterdayRain.toFixed(1)} mm` : null },
                   ].map((cell, i) => (
                     <Link key={i} href={cell.href} style={{ textDecoration: 'none', color: 'inherit', padding: '12px 8px', textAlign: 'center', borderRight: i < 3 ? '1px solid var(--border)' : 'none', display: 'block' }}>
                       <div style={{ fontSize: 18, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cell.value}</div>
                       {cell.sub && <div style={{ fontSize: 11, color: 'var(--orange)', marginTop: 2 }}>{cell.sub}</div>}
                       <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{cell.label}</div>
+                      {(cell as any).extra && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{(cell as any).extra}</div>}
                     </Link>
                   ))}
                 </div>

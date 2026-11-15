@@ -399,3 +399,26 @@ export async function getLastFrostDate(
   const daysSinceFrost = Math.floor((Date.now() - lastFrostDate.getTime()) / (1000 * 60 * 60 * 24))
   return { lastFrostDate, daysSinceFrost }
 }
+
+// Rain for the previous 9am–9am day (gauge only)
+export async function getYesterdayRain(stationId: string, prisma: any): Promise<number | null> {
+  const stationRecord = await prisma.stations.findUnique({ where: { id: stationId }, select: { borrowed_station_id: true } })
+  const effectiveId = stationRecord?.borrowed_station_id ?? stationId
+  const end = getMelbourneMidnightUTC()
+  const start = new Date(end.getTime() - 24 * 60 * 60 * 1000)
+  const readings = await prisma.weather_readings.findMany({
+    where: { station_id: effectiveId, created_at: { gte: start, lt: end }, rain_mm: { not: null } },
+    orderBy: { created_at: 'asc' },
+    select: { rain_mm: true },
+  })
+  if (readings.length < 2) return null
+  let total = 0
+  let last = parseFloat(String(readings[0].rain_mm))
+  for (let i = 1; i < readings.length; i++) {
+    const curr = parseFloat(String(readings[i].rain_mm))
+    const inc = curr - last
+    if (inc > 0 && inc <= 25) total += inc
+    last = curr
+  }
+  return total
+}
