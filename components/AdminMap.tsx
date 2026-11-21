@@ -9,6 +9,52 @@ export type StationMarker = {
   longitude: number
   alerts: string[]
   alertLevel: 'ok' | 'warn' | 'critical'
+  borrowedFrom?: string | null
+  last?: {
+    time: string
+    ageMin: number
+    temp: number | null
+    humidity: number | null
+    deltaT: number | null
+    windKmh: number | null
+    gustKmh: number | null
+    windDir: string | null
+    wsBattV: number | null
+    nodeBattV: number | null
+    solarV: number | null
+    rssi: number | null
+  } | null
+}
+
+function ago(min: number) {
+  if (min < 1) return 'just now'
+  if (min < 60) return `${min} min ago`
+  if (min < 48 * 60) return `${Math.round(min / 60)} h ago`
+  return `${Math.round(min / 1440)} days ago`
+}
+
+function readingHtml(s: StationMarker) {
+  const r = s.last
+  if (!r) return s.borrowedFrom
+    ? `<div style="color:#888;font-size:12px;margin-top:6px">Shared paddock — readings come from ${s.borrowedFrom}</div>`
+    : ''
+  const cell = (label: string, value: string) =>
+    `<div><div style="color:#888;font-size:10px;text-transform:uppercase;letter-spacing:0.5px">${label}</div><div style="font-size:13px;font-weight:600">${value}</div></div>`
+  const n = (v: number | null, dp: number, unit: string) => (v == null ? '—' : `${v.toFixed(dp)}${unit}`)
+  const wind = r.windKmh == null ? '—' : `${Math.round(r.windKmh)} km/h${r.windDir ? ' ' + r.windDir : ''}`
+  return `
+    <div style="font-size:11px;color:#888;margin-top:6px">Last reading ${r.time} · ${ago(r.ageMin)}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:6px">
+      ${cell('Temp', n(r.temp, 1, '°C'))}
+      ${cell('Humidity', n(r.humidity, 0, '%'))}
+      ${cell('Delta T', n(r.deltaT, 1, '°C'))}
+      ${cell('Wind', wind)}
+      ${cell('Gust', r.gustKmh == null ? '—' : `${Math.round(r.gustKmh)} km/h`)}
+      ${cell('Signal', r.rssi == null ? '—' : `${r.rssi} dBm`)}
+      ${cell('WS battery', n(r.wsBattV, 2, 'V'))}
+      ${cell('Node battery', n(r.nodeBattV, 2, 'V'))}
+      ${cell('Solar', n(r.solarV, 2, 'V'))}
+    </div>`
 }
 
 export default function AdminMap({ stations }: { stations: StationMarker[] }) {
@@ -74,11 +120,13 @@ export default function AdminMap({ stations }: { stations: StationMarker[] }) {
           : `<div style="color:#4ade80;font-size:12px;margin-top:4px">✅ All OK</div>`
 
         L.marker([s.latitude, s.longitude], { icon })
-          .bindPopup(L.popup({ maxWidth: 220 }).setContent(`
+          .bindPopup(L.popup({ maxWidth: 280, minWidth: 220 }).setContent(`
             <div style="font-family:sans-serif;padding:4px">
               <strong style="font-size:14px">${s.paddockName ?? s.id}</strong>
               <div style="color:#888;font-size:11px;margin-top:2px">${s.id}</div>
+              ${readingHtml(s)}
               ${alertHtml}
+              <a href="/station/${s.id}" style="display:inline-block;margin-top:8px;font-size:12px;color:#f97316;text-decoration:none">Open station page →</a>
             </div>
           `))
           .addTo(map)

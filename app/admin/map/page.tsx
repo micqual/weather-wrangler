@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import AdminMap from '@/components/AdminMap'
 import type { StationMarker } from '@/components/AdminMap'
+import { calculateDeltaT } from '@/lib/sprayWindow'
+import { degreesToCompass } from '@/lib/wind'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +27,13 @@ export default async function AdminMapPage() {
           created_at: true,
           battery_mv: true,
           esp_battery_v: true,
+          temperature_c: true,
+          humidity: true,
+          wind_avg_ms: true,
+          wind_max_ms: true,
+          wind_dir_deg: true,
+          solar_v: true,
+          rssi: true,
         },
       },
     },
@@ -68,6 +77,21 @@ export default async function AdminMapPage() {
       longitude: s.longitude as number,
       alerts,
       alertLevel,
+      borrowedFrom: s.borrowed_station_id ?? null,
+      last: r?.created_at ? {
+        time: new Date(r.created_at).toLocaleString('en-AU', { timeZone: 'Australia/Melbourne', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }),
+        ageMin: Math.round((Date.now() - new Date(r.created_at).getTime()) / 60000),
+        temp: r.temperature_c != null ? Number(r.temperature_c) : null,
+        humidity: r.humidity != null ? Number(r.humidity) : null,
+        deltaT: r.temperature_c != null && r.humidity != null && Number(r.humidity) > 0 ? calculateDeltaT(Number(r.temperature_c), Number(r.humidity)) : null,
+        windKmh: r.wind_avg_ms != null ? Number(r.wind_avg_ms) * 3.6 : null,
+        gustKmh: r.wind_max_ms != null ? Number(r.wind_max_ms) * 3.6 : null,
+        windDir: r.wind_dir_deg != null ? degreesToCompass(Number(r.wind_dir_deg)) : null,
+        wsBattV: r.battery_mv != null ? Number(r.battery_mv) / 1000 : null,
+        nodeBattV: r.esp_battery_v != null ? Number(r.esp_battery_v) : null,
+        solarV: r.solar_v != null ? Number(r.solar_v) : null,
+        rssi: r.rssi != null ? Number(r.rssi) : null,
+      } : null,
     }
   })
 
