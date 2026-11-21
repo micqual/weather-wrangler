@@ -85,11 +85,16 @@ export default async function AdminPage() {
             {stations.length} stations · {farmers.length} farmers · {farms.length} farms
           </p>
         </div>
-        {stationsWithGps > 0 && (
-          <Link href="/admin/map" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
-            🗺️ Station map
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {stationsWithGps > 0 && (
+            <Link href="/admin/map" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+              🗺️ Station map
+            </Link>
+          )}
+          <Link href="/admin/deltat" style={{ border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+            Delta T calibration
           </Link>
-        )}
+        </div>
       </div>
 
       {/* Expiring subscriptions */}
