@@ -108,9 +108,9 @@ export default async function DeltaTCalibrationPage({ searchParams }: { searchPa
       <form method="get" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         <select name="station" defaultValue={selectedId ?? ''} className="input" style={{ flex: 1 }}>
           <option value="" disabled>Select a station…</option>
-          {stations.map(s => (
+          {stations.filter(s => !s.borrowed_station_id).map(s => (
             <option key={s.id} value={s.id}>
-              {s.paddock_name ?? s.id} ({s.id}){s.borrowed_station_id ? ` — borrows ${s.borrowed_station_id}` : ''}
+              {s.paddock_name ?? s.id} ({s.id})
             </option>
           ))}
         </select>
