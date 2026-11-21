@@ -16,7 +16,7 @@ function dailyFromReadings(readings: { created_at: Date | null; rain_mm: any }[]
   let last: number | null = null
   for (const r of readings) {
     const curr = toN(r.rain_mm)
-    if (curr == null || curr > 600) continue
+    if (curr == null) continue
     if (last == null) { last = curr; continue }
     const inc = curr - last
     if (inc < 0) { last = curr; continue }
