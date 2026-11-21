@@ -17,6 +17,7 @@ import { getHeatStress } from '@/lib/heatStress'
 import { assessDiseaseRisk } from '@/lib/diseaseRisk'
 import { assessFireRisk } from '@/lib/fireRisk'
 import { getHarvestWindow } from '@/lib/harvestWindow'
+import { getHarvestOutlook, cropGroupOf } from '@/lib/harvestOutlook'
 import { getSubscriptionStatus, canAccessFeature } from '@/lib/subscription'
 import NavMenu from '@/components/NavMenu'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
@@ -233,6 +234,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             )
 
             const sprayOutlook = await getSprayOutlook(dLat, dLon)
+            const harvestOutlook = fireRisk.show ? await getHarvestOutlook(dLat, dLon, s.crop_types?.crop_name) : null
 
             const sprayIcon = spray.overall === 'go' ? '🟢' : spray.overall === 'caution' ? '🟡' : '🔴'
             const frostIcon = frost.risk === 'none' ? '🟢' : frost.risk === 'watch' ? '🟡' : '🔴'
@@ -315,6 +317,22 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                       subDetail: frostHistory.lastFrostDate.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }),
                     }] : []),
                     ...(fireRisk.show ? [{ name: 'Harvest window', value: harvest.overall === 'go' ? 'Good to harvest' : harvest.overall === 'caution' ? 'Harvest with caution' : 'Stop harvest', status: harvest.overall === 'go' ? '🟢' : harvest.overall === 'caution' ? '🟡' : '🔴', detail: null, subDetail: <>{harvest.conditions.map(c => `${c.label}: ${c.value} (${c.reason})`).join(' · ')}<div style={{ marginTop: 4, fontStyle: 'italic', opacity: 0.8 }}>{harvest.note}</div></> }] : []),
+                    ...(harvestOutlook && harvestOutlook.length > 0 ? [{
+                      name: 'Harvest outlook',
+                      value: `${harvestOutlook.filter(d => d.status === 'go').length} of ${harvestOutlook.length} days good`,
+                      status: harvestOutlook.some(d => d.status === 'go') ? '🟢' : harvestOutlook.some(d => d.status === 'caution') ? '🟡' : '🔴',
+                      detail: null,
+                      subDetail: <>
+                        {harvestOutlook.map(d => (
+                          <div key={d.date} style={{ display: 'flex', gap: 8, marginTop: 3 }}>
+                            <span style={{ width: 78, flexShrink: 0 }}>{d.label}</span>
+                            <span style={{ flex: 1 }}>{d.window ? `${d.window} (${d.hoursGood} h)` : 'No window'}{d.reason ? ` · ${d.reason}` : ''}</span>
+                            <span>{d.status === 'go' ? '🟢' : d.status === 'caution' ? '🟡' : '🔴'}</span>
+                          </div>
+                        ))}
+                        <div style={{ marginTop: 4, fontStyle: 'italic', opacity: 0.8 }}>Forecast (Open-Meteo) using {cropGroupOf(s.crop_types?.crop_name)} Delta T bands, fire danger and rain.</div>
+                      </>,
+                    }] : []),
                     ...(heat && heat.level !== 'none' ? [{ name: 'Heat stress', value: heat.label, status: heat.level === 'severe' ? '🔴' : '🟡', detail: heat.reason }] : []),
                   ].map((row, i, arr) => (
                     <div key={i} style={{ padding: '9px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
